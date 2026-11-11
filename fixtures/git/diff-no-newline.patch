@@ -1,0 +1,9 @@
+diff --git a/tail.txt b/tail.txt
+index 20cbb4d..db1dabe 100644
+--- a/tail.txt
++++ b/tail.txt
+@@ -1 +1 @@
+-no newline
+\ No newline at end of file
++no newline, changed
+\ No newline at end of file

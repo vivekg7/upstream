@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# The full check -- lint and every test suite -- before anything reaches
+# GitHub. Slow on purpose; pre-commit stays fast so this is the one that waits.
+. "$(git rev-parse --show-toplevel)/.githooks/lib.sh"
+
+make check >/dev/null 2>&1 || die "make check failed" "Run: make check, and read what fails"

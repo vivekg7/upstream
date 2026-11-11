@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Upstream.app's Info.plist; scripts/build-mac.sh copies it into the bundle.
+  The version here is the app's: raise it for every build that is installed.
+-->
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>Upstream</string>
+    <key>CFBundleDisplayName</key>
+    <string>Upstream</string>
+    <key>CFBundleIdentifier</key>
+    <string>io.github.vivekg7.upstream</string>
+    <key>CFBundleExecutable</key>
+    <string>Upstream</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleIconFile</key>
+    <string>Upstream</string>
+    <!-- macOS 26 or later on Apple silicon only (docs/REQUIREMENTS.md#platforms). -->
+    <key>LSMinimumSystemVersion</key>
+    <string>26.0</string>
+    <key>LSArchitecturePriority</key>
+    <array>
+        <string>arm64</string>
+    </array>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.developer-tools</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>

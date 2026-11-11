@@ -1,0 +1,26 @@
+# Local scratch: captures, dumps, experiments. Never committed.
+tmp/
+
+# This machine only: archived release builds (scripts/build-mac.sh).
+local/
+
+# Secrets and signing keys.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# Per-machine Claude settings: holds absolute paths, so it cannot be shared.
+# `make init` writes it. The memory directory it points at IS tracked.
+.claude/settings.local.json
+.claude/worktrees/
+
+.DS_Store
+.idea/
+.vscode/
+
+# SwiftPM build output.
+macos/.build/
+macos/.swiftpm/

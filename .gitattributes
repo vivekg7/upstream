@@ -1,0 +1,3 @@
+# Real git output, compared byte for byte by both apps' tests: never let
+# git convert line endings or whitespace in it.
+fixtures/** -text

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Instant. Subject length, and no assistant attribution.
+. "$(git rev-parse --show-toplevel)/.githooks/lib.sh"
+
+msg=$(grep -v '^#' "$1")
+subject=$(printf '%s\n' "$msg" | head -n 1)
+
+[ -n "$subject" ] || die "empty commit subject"
+[ ${#subject} -le 72 ] \
+  || die "subject is ${#subject} characters (max 72)" "$subject"
+
+# The message describes the change and nothing else (AGENTS.md).
+if printf '%s\n' "$msg" | grep -Eiq \
+  'co-authored-by:.*(claude|anthropic|copilot|gpt|openai|gemini|cursor|assistant|noreply@anthropic)|generated (with|by) .*(claude|ai|copilot|gpt|gemini)|claude\.(ai|com)/(code|chat)|🤖'; then
+  die "commit message carries AI attribution" \
+      "Remove the Co-Authored-By / 'Generated with' / session-link lines."
+fi

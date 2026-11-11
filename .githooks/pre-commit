@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Budget: about a second. Staged files only, no network.
+. "$(git rev-parse --show-toplevel)/.githooks/lib.sh"
+
+# .gitignore keeps these out; this catches a `git add -f`.
+bad=$(staged '^(tmp|local)/|(^|/)\.env($|\.)|\.(pem|key|p12)$|(^|/)\.claude/settings\.local\.json$')
+[ -z "$bad" ] || die "staged files that must never be committed" $bad \
+  "Unstage with: git restore --staged <file>"
+
+[ -L CLAUDE.md ] || die "CLAUDE.md is no longer a symlink" "Run: make init"
+
+swift=$(staged '\.swift$')
+if [ -n "$swift" ]; then
+  run_on "$swift" xcrun swift-format lint --strict >/dev/null 2>&1 \
+    || die "staged Swift is not swift-format-ted" "Run: make fmt"
+fi
+
+docs=$(staged '\.(md|ya?ml|json)$' | grep -v '^fixtures/' | while IFS= read -r f; do [ ! -L "$f" ] && echo "$f"; done || true)
+if [ -n "$docs" ]; then
+  run_on "$docs" npx --yes --prefer-offline prettier@latest --check >/dev/null 2>&1 \
+    || die "staged Markdown/YAML/JSON is not formatted" "Run: make fmt"
+fi

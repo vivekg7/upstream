@@ -1,0 +1,8 @@
+# Scratch, and the symlink to AGENTS.md (formatted via its target).
+tmp/
+local/
+CLAUDE.md
+LICENSE
+# Real git output, byte for byte.
+fixtures/git/
+macos/.build/
