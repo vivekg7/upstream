@@ -99,7 +99,11 @@ public struct Git: Sendable {
         }
         try Task.checkCancellation()
         guard allowedExitCodes.contains(result.status) else {
-            throw GitError(arguments: arguments, status: result.status, message: result.errorText)
+            // Some refusals go to stdout: `commit` prints "nothing to commit" there.
+            let message =
+                result.errorText.isEmpty
+                ? result.text.trimmingCharacters(in: .whitespacesAndNewlines) : result.errorText
+            throw GitError(arguments: arguments, status: result.status, message: message)
         }
         return result
     }
