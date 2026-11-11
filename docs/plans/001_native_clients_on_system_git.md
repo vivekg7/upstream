@@ -134,7 +134,7 @@ with a 4,000-file status on screen.
 ```
 upstream/
   AGENTS.md (CLAUDE.md → it)  README.md  LICENSE  Makefile
-  docs/        REQUIREMENTS.md, plans/, INSPIRATIONS.md, memory/
+  docs/        REQUIREMENTS.md, plans/, INSPIRATIONS.md, memory/, logo.png
   fixtures/git/  real git output; scripts/make-fixtures.sh writes it
   scripts/     build-mac.sh, make-fixtures.sh (build-linux.sh later)
   macos/       Swift package

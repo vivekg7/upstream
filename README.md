@@ -1,4 +1,4 @@
-# Upstream
+# <img src="docs/logo.png" alt="" width="40" align="top"> Upstream
 
 A lightweight, native desktop client for git, GitHub, GitLab and Bitbucket —
 what GitHub Desktop does, in a few megabytes instead of a gigabyte. SwiftUI

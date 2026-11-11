@@ -201,12 +201,13 @@ only cache, at most 64 answers in memory.
 
 - **The OAuth App: registered (2026-11-11)** under the owner's account, as
   `Upstream`, with the repository as homepage and callback URL (the form
-  requires one; the device flow never uses it) and **Enable Device Flow**
-  ticked. It has no client secret, and must not get one. The Client ID is
-  in `GitHub.clientID`. It can move to a project organisation later with
-  Transfer ownership. To register another (a fork shipping its own build):
-  Settings → Developer settings → OAuth Apps → New OAuth App, the same
-  fields, then the new Client ID in `GitHub.clientID`.
+  requires one; the device flow never uses it), **Enable Device Flow**
+  ticked, and `docs/logo.png` as its logo. It has no client secret, and must
+  not get one. The Client ID is in `GitHub.clientID`. It can move to a
+  project organisation later with Transfer ownership. To register another
+  (a fork shipping its own build): Settings → Developer settings → OAuth
+  Apps → New OAuth App, the same fields, then the new Client ID in
+  `GitHub.clientID`.
 - **Helper precedence: answered (2026-11-11, git 2.54).** A host-scoped
   `credential.<url>.helper` passed with `-c` is **not** consulted first.
   git collects every matching helper in config order, system, global,
