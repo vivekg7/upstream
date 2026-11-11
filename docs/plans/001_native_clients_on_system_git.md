@@ -1,6 +1,6 @@
 # 001 — Native clients on the system's git
 
-**Status:** `IN PROGRESS` — macOS: add a repository, its changes, a file's diff, the checkbox commit; Linux not started
+**Status:** `IN PROGRESS` — macOS: the v1 requirements built (002–009); Linux not started
 **Started:** 2026-11-11
 
 ## Problem
@@ -105,15 +105,18 @@ All in `Git.swift` (and its Rust counterpart):
 
 ### Refreshing
 
-The skeleton refreshes when the app becomes active and on ⌘R. Next, a file
-watcher (FSEvents on macOS, `GFileMonitor` on Linux) on the working tree and
-`.git`, debounced, ignoring `.git/index.lock` churn, with at most one status
-run per repository in flight and later requests coalesced into one.
+A file watcher (FSEvents on macOS, `GFileMonitor` on Linux) on the working
+tree and the git directories, ignoring lock and object churn and paths git
+ignores, with at most one status run in flight and later requests coalesced
+into one. In the background it only marks the repository stale
+([004](004_refreshing_on_file_changes.md)). ⌘R refreshes by hand.
 
 ### Large output
 
 Lazy rows for the changes list and diffs. History is read in pages
-(`git log -z --format=… --max-count=… --skip=…`). A diff too large to render
+(`git log -z --format=… --max-count=…`), each walked on from where the last
+stopped rather than `--skip`, which walks every skipped commit again
+([006](006_history.md)). A diff too large to render
 usefully (thousands of lines changed) asks before it is drawn, as GitHub
 Desktop does.
 
@@ -157,11 +160,15 @@ before.
    amend, built in a temporary index so nothing staged elsewhere is lost
    ([003](003_the_checkbox_commit.md)). Co-authors and templates follow
    there.
-3. The file watcher.
-4. Branches, remotes (fetch, pull, push, publish) and HTTPS credentials
-   ([002](002_forges_github_first.md)).
-5. History, then conflicts, then discard to Trash, stash, settings.
-6. GitHub sign-in, PRs and CI ([002](002_forges_github_first.md)).
+3. ✅ The file watcher ([004](004_refreshing_on_file_changes.md)).
+4. ✅ Branches, remotes (fetch, pull, push, publish) and HTTPS credentials
+   ([005](005_branches_and_remotes.md), [002](002_forges_github_first.md)).
+5. ✅ History, then conflicts, then discard to Trash, stash, settings
+   ([006](006_history.md), [008](008_discard_ignore_and_conflicts.md),
+   [009](009_repositories_and_settings.md)), and the diff view
+   ([007](007_the_diff_view.md)).
+6. ✅ GitHub sign-in, PRs and CI ([002](002_forges_github_first.md)).
+   Browser sign-in waits on registering the OAuth App.
 7. Linux, in a plan of its own once the Mac app covers the Changes, History
    and Branches requirements.
 

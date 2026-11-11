@@ -197,3 +197,83 @@ private func show(_ object: String, _ git: Git, _ dir: URL) async throws -> Stri
     }
     #expect(picked.map { d.lines[$0].text } == ["staged"])
 }
+
+@Test func coAuthorsAreTrailersThatGitFormats() async throws {
+    let (git, dir) = try await repo(["a.txt": "a\n"])
+    defer { try? FileManager.default.removeItem(at: dir) }
+    try write("a2\n", "a.txt", in: dir)
+    var draft = CommitDraft()
+    for text in ["  Ada Lovelace <ada@example.com> ", "Grace Hopper<grace@example.org>"] {
+        draft.coAuthors.append(try #require(CommitDraft.coAuthor(text)))
+    }
+    #expect(CommitDraft.coAuthor("just a name") == nil)
+    #expect(CommitDraft.coAuthor("<nobody@example.com>") == nil)
+
+    let files = try await status(git, dir).files
+    try await git.commit(
+        files.map { ($0, .all) }, message: "Summary\n\nBody", trailers: draft.trailers, amend: false,
+        hasHead: true,
+        in: dir)
+
+    let message = try await git.run(["log", "-1", "--format=%B"], in: dir).text
+    #expect(
+        message
+            == "Summary\n\nBody\n\nCo-authored-by: Ada Lovelace <ada@example.com>\nCo-authored-by: Grace Hopper <grace@example.org>\n\n"
+    )
+}
+
+@MainActor @Test func theTemplatePrefillsAnEmptyDraftWithoutItsComments() async throws {
+    let (git, dir) = try await repo(["a.txt": "a\n"])
+    defer { try? FileManager.default.removeItem(at: dir) }
+    try write(
+        "; a comment, with commentChar ;\nFix: \n\n# not a comment here\nWhy:\n", "template.txt", in: dir)
+    try await git.run(["config", "commit.template", "template.txt"], in: dir)  // relative to the top level
+    try await git.run(["config", "core.commentChar", ";"], in: dir)
+
+    let model = AppModel(git: git, defaults: try #require(UserDefaults(suiteName: UUID().uuidString)))
+    await model.add(dir)
+    await model.refresh()
+
+    #expect(model.draft.summary == "Fix:")
+    #expect(model.draft.description == "# not a comment here\nWhy:")
+    model.draft.summary = ""  // cleared on purpose: not filled in again
+    model.draft.description = ""
+    await model.refresh()
+    #expect(model.draft.summary == "")
+}
+
+@MainActor @Test func stagedLinesOfManyFilesAreReadInOneBatchAndMatchEachFilesDiff() async throws {
+    // A rename and names git C-quotes (a tab, a quote), all staged then edited.
+    let names = ["plain.txt", "with space.txt", "tab\there.txt", "quo\"te.txt", "old.txt"]
+    let base = (1...20).map { "line \($0)\n" }.joined()  // enough for git to pair the rename
+    let (git, dir) = try await repo(Dictionary(uniqueKeysWithValues: names.map { ($0, base) }))
+    defer { try? FileManager.default.removeItem(at: dir) }
+    try await git.run(["mv", "old.txt", "new.txt"], in: dir)
+    let current = names.dropLast() + ["new.txt"]
+    for name in current {
+        try write(base + "staged\n", name, in: dir)
+        try await git.run(["add", "--", name], in: dir)
+        try write(base + "staged\nnot\n", name, in: dir)
+    }
+    let model = AppModel(git: git, defaults: try #require(UserDefaults(suiteName: UUID().uuidString)))
+    await model.add(dir)
+    await model.refresh()
+
+    for name in current {
+        let change = try #require(model.status?.files.first { $0.path == name }, "\(name) missing")
+        guard case .lines(let picked, let d) = model.selection(of: change) else {
+            Issue.record("\(name) should be partly checked: \(model.selection(of: change))")
+            continue
+        }
+        #expect(picked.map { d.lines[$0].text } == ["staged"])
+        // The file's own diff, which the diff view loads and the commit
+        // checks against, is the same: so showing it keeps the lines.
+        model.selectedFile = change.id
+        await model.refresh()
+        #expect(model.diff == d, "\(name)")
+        if case .lines = model.selection(of: change) {
+        } else {
+            Issue.record("\(name) was unchecked on reload")
+        }
+    }
+}

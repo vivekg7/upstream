@@ -50,11 +50,14 @@ public struct Git: Sendable {
     /// Throws `GitError` on a non-zero exit unless `allowedExitCodes` names it
     /// (`diff --no-index` exits 1 when the files differ). `environment` adds
     /// to the base, as `GIT_INDEX_FILE` does for a commit. Cancelling the task
-    /// terminates the process.
+    /// terminates the process. Past `limit` bytes of stdout the process is
+    /// terminated too, and the result says `truncated` (its exit status is
+    /// then not checked): a diff of a generated file can be hundreds of
+    /// megabytes, which should never all be held in memory.
     @discardableResult
     public func run(
         _ arguments: [String], in directory: URL, input: Data? = nil,
-        environment: [String: String] = [:], allowedExitCodes: Set<Int32> = [0]
+        environment: [String: String] = [:], allowedExitCodes: Set<Int32> = [0], limit: Int? = nil
     ) async throws -> GitResult {
         let process = Process()
         process.executableURL = executable
@@ -89,11 +92,27 @@ public struct Git: Sendable {
                         try? stdin.fileHandleForWriting.write(contentsOf: input)
                         try? stdin.fileHandleForWriting.close()
                     }
-                    let out = stdout.fileHandleForReading.readDataToEndOfFile()
+                    var out = Data()
+                    var truncated = false
+                    if let limit {
+                        let handle = stdout.fileHandleForReading
+                        while let chunk = try? handle.read(upToCount: 1 << 16), !chunk.isEmpty {
+                            out.append(chunk)
+                            if out.count > limit {
+                                truncated = true
+                                process.terminate()
+                                break
+                            }
+                        }
+                    } else {
+                        out = stdout.fileHandleForReading.readDataToEndOfFile()
+                    }
                     group.wait()
                     process.waitUntilExit()
                     continuation.resume(
-                        returning: GitResult(status: process.terminationStatus, stdout: out, stderr: err.data)
+                        returning: GitResult(
+                            status: process.terminationStatus, stdout: out, stderr: err.data,
+                            truncated: truncated)
                     )
                 }
             }
@@ -101,7 +120,7 @@ public struct Git: Sendable {
             if process.isRunning { process.terminate() }
         }
         try Task.checkCancellation()
-        guard allowedExitCodes.contains(result.status) else {
+        guard result.truncated || allowedExitCodes.contains(result.status) else {
             // Some refusals go to stdout: `commit` prints "nothing to commit" there.
             let message =
                 result.errorText.isEmpty
@@ -116,6 +135,8 @@ public struct GitResult: Sendable {
     public let status: Int32
     public let stdout: Data
     public let stderr: Data
+    /// Stopped at the `limit` given to `Git.run`: `stdout` is incomplete.
+    public var truncated = false
 
     public var text: String { String(decoding: stdout, as: UTF8.self) }
     public var errorText: String {

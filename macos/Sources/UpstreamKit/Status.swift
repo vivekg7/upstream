@@ -7,8 +7,13 @@ import Foundation
 public struct RepoStatus: Sendable, Equatable {
     public var branch: BranchInfo
     public var files: [FileChange]
+    /// How many stash entries there are (`--show-stash`): a change tells the
+    /// branches model to read the stash again without a call of its own.
+    public var stashCount = 0
 
-    public static let arguments = ["status", "--porcelain=v2", "--branch", "-z", "--untracked-files=all"]
+    public static let arguments = [
+        "status", "--porcelain=v2", "--branch", "--show-stash", "-z", "--untracked-files=all",
+    ]
 
     public init(branch: BranchInfo, files: [FileChange]) {
         self.branch = branch
@@ -18,38 +23,55 @@ public struct RepoStatus: Sendable, Equatable {
     public init(parsing data: Data) {
         var branch = BranchInfo()
         var files: [FileChange] = []
+        var stashCount = 0
         // Each record ends in NUL. A rename or copy is followed by one more
-        // NUL-terminated field: the path it came from.
-        var fields = data.split(separator: 0, omittingEmptySubsequences: true)
-            .map { String(decoding: $0, as: UTF8.self) }[...]
-        while let record = fields.popFirst() {
-            if record.hasPrefix("# ") {
-                branch.read(header: record.dropFirst(2))
-                continue
-            }
+        // NUL-terminated field: the path it came from. Records are read as
+        // bytes and only the path is decoded: building a String per record
+        // and splitting it on spaces took 11 ms for 10,000 changes.
+        var records = data.split(separator: 0, omittingEmptySubsequences: true)[...]
+        func text(_ bytes: Data.SubSequence) -> String { String(decoding: bytes, as: UTF8.self) }
+        while let record = records.popFirst() {
             switch record.first {
-            case "1":  // 1 XY sub mH mI mW hH hI path
-                let parts = record.split(separator: " ", maxSplits: 8, omittingEmptySubsequences: false)
-                guard parts.count == 9 else { continue }
-                files.append(FileChange(path: String(parts[8]), xy: parts[1]))
-            case "2":  // 2 XY sub mH mI mW hH hI Xscore path NUL origPath
-                let parts = record.split(separator: " ", maxSplits: 9, omittingEmptySubsequences: false)
-                guard parts.count == 10 else { continue }
-                files.append(
-                    FileChange(path: String(parts[9]), xy: parts[1], originalPath: fields.popFirst()))
-            case "u":  // u XY sub m1 m2 m3 mW h1 h2 h3 path
-                let parts = record.split(separator: " ", maxSplits: 10, omittingEmptySubsequences: false)
-                guard parts.count == 11 else { continue }
-                var change = FileChange(path: String(parts[10]), xy: parts[1])
+            case UInt8(ascii: "#"):
+                let header = text(record)
+                if header.hasPrefix("# stash ") {
+                    stashCount = Int(header.dropFirst(8)) ?? 0
+                } else if header.hasPrefix("# ") {
+                    branch.read(header: header.dropFirst(2))
+                }
+            case UInt8(ascii: "1"):  // 1 XY sub mH mI mW hH hI path
+                guard let (xy, path) = Self.split(record, fields: 9) else { continue }
+                files.append(FileChange(path: text(path), xy: xy))
+            case UInt8(ascii: "2"):  // 2 XY sub mH mI mW hH hI Xscore path NUL origPath
+                guard let (xy, path) = Self.split(record, fields: 10) else { continue }
+                files.append(FileChange(path: text(path), xy: xy, originalPath: records.popFirst().map(text)))
+            case UInt8(ascii: "u"):  // u XY sub m1 m2 m3 mW h1 h2 h3 path
+                guard let (xy, path) = Self.split(record, fields: 11) else { continue }
+                var change = FileChange(path: text(path), xy: xy)
                 change.conflicted = true
                 files.append(change)
-            case "?":
-                files.append(FileChange(path: String(record.dropFirst(2)), index: nil, worktree: .untracked))
+            case UInt8(ascii: "?"):
+                files.append(FileChange(path: text(record.dropFirst(2)), index: nil, worktree: .untracked))
             default:
                 continue  // "!" ignored files are never asked for
             }
         }
         self.init(branch: branch, files: files)
+        self.stashCount = stashCount
+    }
+
+    /// A record of `fields` space-separated fields, the last being the path
+    /// (which may itself hold spaces): its XY and its path.
+    private static func split(_ record: Data.SubSequence, fields: Int) -> (Substring, Data.SubSequence)? {
+        var spaces = 0
+        var i = record.startIndex
+        while i < record.endIndex, spaces < fields - 1 {
+            if record[i] == UInt8(ascii: " ") { spaces += 1 }
+            i += 1
+        }
+        let xy = record.dropFirst(2).prefix(2)
+        guard spaces == fields - 1, xy.count == 2 else { return nil }
+        return (Substring(String(decoding: xy, as: UTF8.self)), record[i...])
     }
 }
 

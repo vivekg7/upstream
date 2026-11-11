@@ -1,6 +1,6 @@
 # 002 — Forges behind one interface, GitHub first
 
-**Status:** `ACCEPTED` — no code yet; built after branches and remotes (001, step 6)
+**Status:** `IN PROGRESS` — macOS: GitHub sign-in by token (browser sign-in waits on the OAuth App), clone list, publish, pull requests, CI, notification, credential helper; GitLab, Bitbucket and Linux not started
 **Started:** 2026-11-11
 
 ## Problem
@@ -77,21 +77,151 @@ Each a new implementation of the same interface, with its own plan for its
 sign-in (GitLab supports the device flow; Bitbucket uses OAuth or API
 tokens) and its self-hosted variants.
 
+### As built on macOS (2026-11-11)
+
+Code: `UpstreamKit/ForgeAPI.swift` (the interface, the core types, remote
+URL parsing, HTTP), `GitHub.swift`, `Credentials.swift` (Keychain, the
+helper protocol), `Forge.swift` (`ForgeModel`: accounts, polling,
+actions), and `Upstream/ForgeViews.swift`, `Upstream/Main.swift`.
+
+- **The interface** is the `Forge` protocol, one value per signed-in
+  account: `repositories()`, `owners()` and `createRepository(…)` for
+  publishing, `changeRequests(in:)`, `checks(in:commit:)`. What needs no
+  account sits on `ForgeKind` and `RepoRef`: `repository(for: remoteURL)`
+  (the `matches` above), the commit page and the new-change-request form.
+  Sign-in is not in the protocol: each forge's sign-in differs (device
+  flow, tokens, app passwords), so it is per forge, in the model and the
+  settings view. The credential side is `TokenStore` plus
+  `CredentialHelper`, which are forge-neutral.
+- **Which remote is "the repository":** `origin` if it is on a known forge,
+  else the first remote that is. A commit's web link needs no account and
+  no network, so it works for any GitHub remote while signed out. An
+  Enterprise host is recognised only once an account is on it. A
+  branch's checks are read from its own remote (`branch.<name>.remote`),
+  which may be a fork. Remotes are read with
+  `git config -z --get-regexp '^remote\..*\.url$'`, not `git remote -v`.
+- **One account per host**, as GitHub Desktop: one on github.com, one per
+  Enterprise server. The credential helper then never has to choose
+  between two accounts. Only `host` and `login` go in `UserDefaults`
+  (`forgeAccounts`); the token is a generic password in the login keychain,
+  service `Upstream: <host>`, account = login. The legacy file-based
+  keychain, because the data protection keychain needs an entitlement an ad
+  hoc signed app cannot have.
+- **Sign-in.** The device flow on github.com only. An OAuth App is
+  registered per server, so Enterprise hosts sign in with a token. While
+  `GitHub.clientID` is empty (see open questions) the browser button is
+  disabled with a note, and a pasted personal access token works on every
+  host. The token is checked with `GET /user`. A classic or OAuth token
+  lists its scopes in `X-OAuth-Scopes`, and one without `repo` is refused
+  at sign-in rather than at the first push. Fine-grained tokens send no
+  scopes header and are taken on trust. Scopes asked for: `repo` (private
+  repositories, HTTPS push, creating repositories), `workflow` (pushing
+  `.github/workflows`, which `repo` alone cannot), `read:org` (organisations
+  to publish to). Signing out deletes the Keychain item. The token stays
+  valid on GitHub until revoked there, and the settings say so.
+- **Credential helper.** For a remote (a name, so its `url` and `pushurl`,
+  or a URL) whose scheme is `https` and whose host has an account, every
+  network git command gets
+  `-c credential.https://<host[:port]>.helper= -c credential.https://<host[:port]>.helper=!'<exe>' credential`.
+  `<exe>` is the app's own executable, single-quoted for git's shell, and
+  `Main.swift` answers `get` from the Keychain without starting the UI.
+  `store` and `erase` do nothing: the token is the account's, and a failed
+  push must not delete it. Because the reset empties the list for that
+  host, git's `store` after a push reaches only us, so the token is never
+  copied into `osxkeychain` either. SSH remotes and other hosts are never
+  touched. The port has to be in the key: git matches credential URLs
+  host _and_ port.
+- **Pull requests:** one GraphQL query, the 50 most recently updated open
+  ones, each with its head's `statusCheckRollup`. **Checking one out:**
+  from the same repository, its real branch, created to track
+  `<remote>/<branch>` (fetched with an explicit refspec, so a single-branch
+  clone works too), so pushing to it works as for any branch. From a fork,
+  `refs/pull/<n>/head` fetched into `pr/<n>`, **never forced**: if the
+  author rewrote the branch and the local one has commits of its own, git
+  refuses rather than drop them. Every fetch carries the credential
+  arguments.
+- **Create Pull Request** opens
+  `https://<host>/<owner>/<repo>/compare/<base>...<branch>?expand=1`. The
+  base is `refs/remotes/<remote>/HEAD` when the last fetch recorded it,
+  else GitHub's default (`compare/<branch>`). The branch is the upstream's
+  name (`branch.<name>.merge`), as `<fork-owner>:<branch>` when pushed to a
+  fork. It needs no account. Branch → Create Pull Request, **⌥⌘R**: ⌘R,
+  GitHub Desktop's shortcut, is Refresh here. Disabled with the reason
+  until the branch has an upstream.
+- **Publish** (Repository → Publish Repository…, or the toolbar while the
+  repository has no remote): account, owner (the account or one of its
+  organisations), name (the folder's, spaces as dashes), description,
+  private by default as in GitHub Desktop. It creates the repository
+  through the API, adds it as `origin` (the HTTPS clone URL) and runs
+  `git push -u origin HEAD` with the credential arguments. Disabled before
+  the first commit.
+- **CI of the current branch:** its check runs and its commit statuses
+  (GitHub keeps the two apart), for HEAD once it is pushed (an upstream and
+  nothing ahead). Failure as soon as one check fails, pending while any
+  runs. The popover lists failing ones first, each linked to its page.
+- **Notification** when the checks on the current commit go from running
+  to all finished. Permission is asked the first time a check is seen
+  running, not at launch, so someone who never signs in is never asked.
+  macOS shows it only while the app is in the background, which is where
+  it is needed. Only from an app bundle: the bare debug executable and the
+  test runner crash in `UNUserNotificationCenter`.
+
+### Network budget
+
+Written down because it will be audited, and because each line is a choice.
+
+| When                                                                        | What is sent                                                                                                                                                                             |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signed out                                                                  | Nothing. The commit link and the new-PR form are built from the remote URL.                                                                                                              |
+| In front, signed in, current branch pushed                                  | Two conditional GETs a minute (check runs, statuses). A 304 does not count against GitHub's rate limit, so a settled commit costs two tiny round trips and no quota.                     |
+| A repository is opened, the app comes to the front, or the PR popover opens | One GraphQL query for the open PRs, at most once per 30 s. Never on a timer: GraphQL has no conditional requests, and the list is only looked at in the popover.                         |
+| HEAD, the branch or its upstream moves                                      | The two check GETs at once, then back to the minute.                                                                                                                                     |
+| In the background                                                           | Only while a check on the current branch is pending, once a minute, for the notification; stops when it settles. Otherwise nothing, until the app comes back.                            |
+| A request fails                                                             | The interval doubles, up to 15 minutes, so an outage or a rate limit is not hammered. A 401 stops polling until the user signs in again. Failures go to a tooltip, not the error banner. |
+
+Every request is to a host the user signed in to. `URLCache` is off (it
+would answer 304s itself and hide them), so our own `ETag` copy is the
+only cache, at most 64 answers in memory.
+
 ## Plan
 
-1. The interface and a fake implementation the views are built against.
-2. GitHub: device-flow sign-in and the Keychain, then the clone list.
-3. The credential helper mode, tested with a real push to a scratch
-   repository.
-4. PR list, check-out, CI state, notification.
-5. Create PR (browser).
+1. ✅ The interface. No fake implementation: the views are built against
+   `ForgeModel`, and the tests stub the network with `URLProtocol` instead.
+2. ✅ GitHub: token sign-in and the Keychain, then the clone list. The
+   device flow is built and tested against the stub; it waits on the
+   OAuth App.
+3. ✅ The credential helper mode. The precedence question is settled by a
+   test against the installed git. ◻️ A real push to a scratch repository
+   on GitHub, by hand, once an account is set up.
+4. ✅ PR list, check-out, CI state, notification.
+5. ✅ Create PR (browser).
 
 ## Open questions
 
-- **Registering the OAuth app.** Someone has to create the GitHub OAuth App
-  (owner's account or an organisation for the project) with the device flow
-  enabled. Its client ID goes in the source.
-- **Helper precedence.** Verify that a host-scoped `credential.<url>.helper`
-  passed with `-c` is consulted before a global `osxkeychain` helper that
-  holds an old token for the same host; if not, an empty-string helper entry
-  first resets the list for that host.
+- **Registering the OAuth App** (owner). On GitHub: Settings → Developer
+  settings → OAuth Apps → New OAuth App, under the owner's account or,
+  better, an organisation for the project. Application name `Upstream`;
+  homepage URL the project's repository; authorization callback URL the
+  same (required by the form, unused by the device flow); tick **Enable
+  Device Flow**. No client secret is needed: do not generate one. Put the
+  Client ID in `GitHub.clientID` (`macos/Sources/UpstreamKit/GitHub.swift`).
+  Until then, tokens work.
+- **Helper precedence: answered (2026-11-11, git 2.54).** A host-scoped
+  `credential.<url>.helper` passed with `-c` is **not** consulted first.
+  git collects every matching helper in config order, system, global,
+  local and then `-c`, and stops at the first that answers. A global
+  `osxkeychain` with an old token therefore wins. The empty-value entry is
+  needed, and it does reset the whole list for that host (the generic
+  `credential.helper` included) while other hosts keep theirs. Pinned by
+  `ourHelperWinsOverAGlobalOneOnlyBecauseOfTheReset` in `ForgeTests`, with
+  stub helpers and `GIT_CONFIG_GLOBAL`/`GIT_CONFIG_NOSYSTEM`.
+- **Forks.** PRs are read from `origin`. For a clone of a fork whose PRs
+  go to the parent (an `upstream` remote), GitHub Desktop asks how the
+  fork is used. Not decided yet.
+- **Keychain prompts after rebuilds.** The Keychain trusts the binary that
+  saved the item by its signature. An ad hoc signature changes with every
+  build, so after an update macOS asks once before handing out the token,
+  and for the credential helper that dialog appears in the middle of a
+  push. A Developer ID signature fixes it.
+- **`url.<base>.insteadOf`.** The credential arguments are chosen from the
+  remote's configured URL, not the rewritten one.

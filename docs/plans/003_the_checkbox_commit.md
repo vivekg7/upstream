@@ -1,6 +1,6 @@
 # 003 — The checkbox commit
 
-**Status:** `MERGED` — files, lines, hunks, summary, description, amend; co-authors and commit templates not yet
+**Status:** `MERGED` — files, lines, hunks, summary, description, amend, co-authors and the commit template
 **Started:** 2026-11-11
 
 ## Problem
@@ -107,8 +107,17 @@ checked lines in.
   commit. With nothing checked, it rewrites the message alone. It warns
   when the commit is already on the upstream branch (status says ahead 0).
   Turning it off brings back what was typed before.
-- **No commit with conflicted files.** Committing a merge belongs to the
-  conflicts work (plan 001 step 5).
+- **No commit with conflicted files, nor during a merge, rebase,
+  cherry-pick or revert.** The temporary index starts from HEAD, so it
+  would drop a merge's second parent or the files it brought in. Those are
+  finished with Commit Merge or Continue instead
+  ([008](008_discard_ignore_and_conflicts.md)).
+- **Co-authors** are trailers: `git commit --trailer "Co-authored-by: Name
+<email>"`, so git formats them where hooks and forges expect them.
+- **commit.template** fills an empty draft, read once per repository with
+  its comments stripped by `git stripspace` (which knows
+  `core.commentChar`). Fields the user cleared stay clear. Details in
+  [008](008_discard_ignore_and_conflicts.md).
 
 ### Cost
 
@@ -127,9 +136,10 @@ A 10,000-line diff parses in 2 ms and a patch is cut from it in under 1 ms
    stale line selection.
 3. ✅ Checkboxes (mixed state included), check all, the gutter and hunk
    headers in the diff, summary, description, amend, ⌘↩ to commit.
-4. Co-authors (`git commit --trailer "Co-authored-by: …"`, so git formats
+4. ✅ Co-authors (`git commit --trailer "Co-authored-by: …"`, so git formats
    them) and the summary prefilled from `commit.template`, with the
-   [REQUIREMENTS](../REQUIREMENTS.md#changes) items they finish.
+   [REQUIREMENTS](../REQUIREMENTS.md#changes) items they finish; tests for
+   the trailers and for a template with a custom `core.commentChar`.
 
 ## Open questions
 

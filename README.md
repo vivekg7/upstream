@@ -5,9 +5,10 @@ what GitHub Desktop does, in a few megabytes instead of a gigabyte. SwiftUI
 on macOS, GTK on Linux, the system's own `git` underneath. No Electron, no
 bundled git, no telemetry.
 
-**Status:** early. The macOS app opens repositories, shows their changes
-and diffs, and commits exactly the checked files and lines (amend too).
-The plan for everything else is in
+**Status:** early. The macOS app covers what GitHub Desktop users rely on
+day to day: repositories, changes with the checkbox commit, the diff,
+history, branches and remotes, conflicts, and GitHub pull requests and CI.
+What is built and what is not is in
 [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md).
 
 | Platform                      | State       | Folder   |

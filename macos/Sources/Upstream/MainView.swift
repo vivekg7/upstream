@@ -1,35 +1,59 @@
 import SwiftUI
 import UpstreamKit
 
-/// Repositories, then the selected one's changes, then the selected file's
-/// diff: the three columns GitHub Desktop users already know.
+/// Repositories, then the selected one's changes or history, then the diff:
+/// the columns GitHub Desktop users already know.
 struct MainView: View {
     @Environment(AppModel.self) private var model
+    @AppStorage(DiffView.hideWhitespaceKey) private var hideWhitespace = false
 
     var body: some View {
         @Bindable var model = model
         NavigationSplitView {
-            List(model.repositories, id: \.self, selection: $model.selected) { url in
-                Label(url.lastPathComponent, systemImage: "folder")
-                    .help(url.path)
-                    .contextMenu {
-                        Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
-                        Button("Remove from List") { model.remove(url) }
-                    }
-            }
-            .navigationSplitViewColumnWidth(min: 160, ideal: 200)
+            RepositoryList()
+                .navigationSplitViewColumnWidth(min: 160, ideal: 200)
         } content: {
-            ChangesView()
-                .navigationSplitViewColumnWidth(min: 220, ideal: 280)
+            VStack(spacing: 0) {
+                Picker("View", selection: $model.tab) {
+                    Text("Changes").tag(AppModel.Tab.changes)
+                    Text("History").tag(AppModel.Tab.history)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .padding(8)
+                switch model.tab {
+                case .changes: ChangesView()
+                case .history: HistoryView()
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 240, ideal: 300)
         } detail: {
-            DiffView()
+            switch model.tab {
+            case .changes: ChangesDiffView()
+            case .history: HistoryDetailView()
+            }
         }
         .toolbar {
-            if let branch = model.status?.branch {
-                ToolbarItem(placement: .navigation) { BranchLabel(branch: branch) }
+            if model.selected != nil {
+                ToolbarItemGroup(placement: .navigation) { BranchToolbar() }
+                ToolbarItemGroup(placement: .primaryAction) {
+                    if let activity = model.activity {
+                        ProgressView().controlSize(.small).help(activity)
+                    }
+                    ForgeToolbar()
+                    RemoteToolbar()
+                }
             }
         }
         .navigationTitle(model.selected?.lastPathComponent ?? "Upstream")
+        // Whitespace changes what git is asked for, so the model reads it,
+        // for Changes and History alike.
+        .onChange(of: hideWhitespace, initial: true) { model.hidesWhitespace = hideWhitespace }
+        .modifier(ForgeSheets())
+        .modifier(BranchDialogs())
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let error = model.error { ErrorBanner(message: error) { model.error = nil } }
+        }
         .overlay {
             if model.git == nil {
                 ContentUnavailableView(
@@ -42,21 +66,27 @@ struct MainView: View {
                     description: Text("File → Add Local Repository… (⌘O)"))
             }
         }
-        .task { await model.refresh() }
     }
 }
 
-private struct BranchLabel: View {
-    let branch: BranchInfo
+/// The last failure, in git's own words, until dismissed.
+private struct ErrorBanner: View {
+    let message: String
+    let dismiss: () -> Void
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "arrow.triangle.branch")
-            Text(branch.head ?? "Detached HEAD")
-            if branch.ahead > 0 { Text("↑\(branch.ahead)").monospacedDigit() }
-            if branch.behind > 0 { Text("↓\(branch.behind)").monospacedDigit() }
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+            Text(message)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(6)
+            Button("Dismiss", systemImage: "xmark", action: dismiss)
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
         }
-        .padding(.horizontal, 8)
-        .help(branch.upstream.map { "Tracking \($0)" } ?? "No upstream branch")
+        .font(.callout)
+        .padding(10)
+        .background(.red.opacity(0.12))
     }
 }
