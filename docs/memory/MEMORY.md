@@ -1,0 +1,1 @@
+- [Measuring the Mac app](measuring-the-mac-app.md) — memory via `footprint`, not ps RSS; screenshots via screencapture -l; seeding the repo list
