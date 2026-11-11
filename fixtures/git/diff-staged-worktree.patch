@@ -1,0 +1,8 @@
+diff --git a/staged.txt b/staged.txt
+index 9434c9a..c467622 100644
+--- a/staged.txt
++++ b/staged.txt
+@@ -1,2 +1,3 @@
+ s
+ s2
++s3

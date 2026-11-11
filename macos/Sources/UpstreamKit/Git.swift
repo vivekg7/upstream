@@ -48,17 +48,20 @@ public struct Git: Sendable {
 
     /// Runs `git <arguments>` in `directory` and returns what it printed.
     /// Throws `GitError` on a non-zero exit unless `allowedExitCodes` names it
-    /// (`diff --no-index` exits 1 when the files differ). Cancelling the task
+    /// (`diff --no-index` exits 1 when the files differ). `environment` adds
+    /// to the base, as `GIT_INDEX_FILE` does for a commit. Cancelling the task
     /// terminates the process.
+    @discardableResult
     public func run(
         _ arguments: [String], in directory: URL, input: Data? = nil,
-        allowedExitCodes: Set<Int32> = [0]
+        environment: [String: String] = [:], allowedExitCodes: Set<Int32> = [0]
     ) async throws -> GitResult {
         let process = Process()
         process.executableURL = executable
         process.arguments = Self.baseArguments + arguments
         process.currentDirectoryURL = directory
-        process.environment = ProcessInfo.processInfo.environment.merging(Self.baseEnvironment) { $1 }
+        process.environment = ProcessInfo.processInfo.environment
+            .merging(Self.baseEnvironment) { $1 }.merging(environment) { $1 }
         let stdout = Pipe()
         let stderr = Pipe()
         let stdin = Pipe()

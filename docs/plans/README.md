@@ -81,7 +81,8 @@ wrong.
 
 ## Index
 
-| Plan                                                                            | Status                                                             |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| [002 — Forges behind one interface, GitHub first](002_forges_github_first.md)   | `ACCEPTED` — no code yet                                           |
-| [001 — Native clients on the system's git](001_native_clients_on_system_git.md) | `IN PROGRESS` — macOS skeleton: status and diff; Linux not started |
+| Plan                                                                            | Status                                                                      |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [003 — The checkbox commit](003_the_checkbox_commit.md)                         | `MERGED` — files, lines, amend; co-authors and templates not yet            |
+| [002 — Forges behind one interface, GitHub first](002_forges_github_first.md)   | `ACCEPTED` — no code yet                                                    |
+| [001 — Native clients on the system's git](001_native_clients_on_system_git.md) | `IN PROGRESS` — macOS: status, diff, the checkbox commit; Linux not started |

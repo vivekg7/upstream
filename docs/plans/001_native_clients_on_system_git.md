@@ -1,6 +1,6 @@
 # 001 — Native clients on the system's git
 
-**Status:** `IN PROGRESS` — macOS skeleton built: add a repository, its changes, a file's diff; Linux not started
+**Status:** `IN PROGRESS` — macOS: add a repository, its changes, a file's diff, the checkbox commit; Linux not started
 **Started:** 2026-11-11
 
 ## Problem
@@ -153,10 +153,10 @@ before.
 
 1. ✅ Skeleton: add a repository, its changes and branch, a file's diff;
    fixtures and tests; the arm64 bundle.
-2. The checkbox commit: stage exactly the checked files and lines
-   (`git apply --cached` for partial files), commit, amend. The part most
-   likely to go wrong is partial staging of renamed and new files; it gets
-   fixture scenarios of its own.
+2. ✅ The checkbox commit: exactly the checked files and lines, commit,
+   amend, built in a temporary index so nothing staged elsewhere is lost
+   ([003](003_the_checkbox_commit.md)). Co-authors and templates follow
+   there.
 3. The file watcher.
 4. Branches, remotes (fetch, pull, push, publish) and HTTPS credentials
    ([002](002_forges_github_first.md)).

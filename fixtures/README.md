@@ -7,17 +7,23 @@ One set of bytes, so the two parsers cannot drift apart
 
 `scripts/make-fixtures.sh` (`make fixtures`) builds a scratch repository with
 every kind of change we parse — modified, staged and unstaged, added,
-deleted, renamed with spaces, untracked with non-ASCII, binary, no final
-newline, a merge conflict, ahead and behind its upstream — and writes what
-git prints for it. Dates and identities are fixed, so object IDs are stable.
+deleted, renamed with spaces and edited after, untracked with non-ASCII,
+binary, no final newline, a merge conflict, ahead and behind its upstream —
+and writes what git prints for it, with the diff options the app uses.
+Dates and identities are fixed, so object IDs are stable.
 
 **Never edit these by hand.** To cover a new case, add it to the script and
 regenerate. `.gitattributes` keeps git from converting their line endings.
 
-| File                    | Command                                                       |
-| ----------------------- | ------------------------------------------------------------- |
-| `status-v2.z`           | `git status --porcelain=v2 --branch -z --untracked-files=all` |
-| `diff-modified.patch`   | `git diff HEAD -- keep.txt`                                   |
-| `diff-no-newline.patch` | `git diff HEAD -- tail.txt`                                   |
-| `diff-binary.patch`     | `git diff HEAD -- image.bin`                                  |
-| `diff-untracked.patch`  | `git diff --no-index -- /dev/null 'ünïcode file.txt'`         |
+| File                         | Command                                                         |
+| ---------------------------- | --------------------------------------------------------------- |
+| `status-v2.z`                | `git status --porcelain=v2 --branch -z --untracked-files=all`   |
+| `diff-modified.patch`        | `git diff HEAD -- keep.txt`                                     |
+| `diff-no-newline.patch`      | `git diff HEAD -- tail.txt`                                     |
+| `diff-binary.patch`          | `git diff HEAD -- image.bin`                                    |
+| `diff-untracked.patch`       | `git diff --no-index -- /dev/null 'ünïcode file.txt'`           |
+| `diff-added.patch`           | `git diff HEAD -- added.txt`                                    |
+| `diff-renamed.patch`         | `git diff --find-renames HEAD -- 'old name.txt' 'new name.txt'` |
+| `diff-staged-head.patch`     | `git diff HEAD -- staged.txt`: what the checkbox commits        |
+| `diff-staged-cached.patch`   | `git diff --cached -- staged.txt`: the staged half              |
+| `diff-staged-worktree.patch` | `git diff -- staged.txt`: the unstaged half                     |

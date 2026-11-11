@@ -22,6 +22,8 @@ export GIT_COMMITTER_NAME=Fixture GIT_COMMITTER_EMAIL=fixture@example.com
 export GIT_AUTHOR_DATE='2026-01-01T00:00:00Z' GIT_COMMITTER_DATE='2026-01-01T00:00:00Z'
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 g() { git -c init.defaultBranch=main -c color.ui=false -c core.quotepath=false "$@"; }
+# The options the app gives every diff (FileDiff.base in macos/).
+d() { g diff --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ "$@"; }
 
 cd "$WORK"
 g init -q --bare origin.git
@@ -29,9 +31,9 @@ g clone -q origin.git repo 2>/dev/null
 cd repo
 
 printf 'a\nb\n' >keep.txt
-echo x >'old name.txt'
+printf 'x\ny\nz\n' >'old name.txt'
 echo d >gone.txt
-echo s >staged.txt
+printf 's\nt\n' >staged.txt
 printf 'line\n' >conflict.txt
 printf '\x00\x01\x02' >image.bin
 printf 'no newline' >tail.txt
@@ -49,9 +51,11 @@ g merge -q theirs >/dev/null 2>&1 || true
 
 # Every other kind of change.
 printf 'a\nB\nc\n' >keep.txt                     # modified, unstaged
-g mv 'old name.txt' 'new name.txt'              # renamed, path with a space
+g mv 'old name.txt' 'new name.txt'              # renamed, path with a space,
+echo w >>'new name.txt'                         # and edited after
 rm gone.txt                                     # deleted, unstaged
-echo s2 >>staged.txt && g add staged.txt && echo s3 >>staged.txt # staged and unstaged
+printf 's\ns2\n' >staged.txt && g add staged.txt # staged: -t +s2,
+echo s3 >>staged.txt                            # and unstaged: +s3
 echo new >added.txt && g add added.txt          # added
 echo u >'ünïcode file.txt'                      # untracked, non-ASCII
 printf '\x00\x09\x08' >image.bin                # binary
@@ -59,8 +63,15 @@ printf 'no newline, changed' >tail.txt          # no newline at end of file
 
 mkdir -p "$OUT"
 g status --porcelain=v2 --branch -z --untracked-files=all >"$OUT/status-v2.z"
-g diff --no-ext-diff HEAD -- keep.txt >"$OUT/diff-modified.patch"
-g diff --no-ext-diff HEAD -- image.bin >"$OUT/diff-binary.patch"
-g diff --no-ext-diff HEAD -- tail.txt >"$OUT/diff-no-newline.patch"
-g diff --no-ext-diff --no-index -- /dev/null 'ünïcode file.txt' >"$OUT/diff-untracked.patch" || true
+d HEAD -- keep.txt >"$OUT/diff-modified.patch"
+d HEAD -- image.bin >"$OUT/diff-binary.patch"
+d HEAD -- tail.txt >"$OUT/diff-no-newline.patch"
+d HEAD -- added.txt >"$OUT/diff-added.patch"
+d --find-renames HEAD -- 'old name.txt' 'new name.txt' >"$OUT/diff-renamed.patch"
+d --no-index -- /dev/null 'ünïcode file.txt' >"$OUT/diff-untracked.patch" || true
+# One file, three ways: what the checkbox shows, and the halves that tell
+# which of its lines a terminal staged.
+d HEAD -- staged.txt >"$OUT/diff-staged-head.patch"
+d --cached -- staged.txt >"$OUT/diff-staged-cached.patch"
+d -- staged.txt >"$OUT/diff-staged-worktree.patch"
 echo "wrote $(ls "$OUT" | wc -l | tr -d ' ') fixtures to fixtures/git/ with $(git --version)"

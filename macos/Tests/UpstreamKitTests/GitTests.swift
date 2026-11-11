@@ -26,7 +26,7 @@ private func scratchRepo() async throws -> (Git, URL) {
 
     let change = status.files[0]
     let (args, allowed) = FileDiff.arguments(for: change, hasHead: false)
-    let diff = FileDiff(parsing: try await git.run(args, in: dir, allowedExitCodes: allowed).text)
+    let diff = FileDiff(parsing: try await git.run(args, in: dir, allowedExitCodes: allowed).stdout)
     #expect(diff.lines.last == DiffLine(kind: .added, text: "hi", newLine: 1))
 }
 

@@ -67,13 +67,22 @@ the commit records exactly the checked files (and checked lines). Users
 never need to know the index exists. Changes the user staged from a terminal
 show as checked.
 
+The owner's answer (2026-11-11): **the app holds the checkboxes until
+Commit**, as GitHub Desktop does, rather than staging on every click. New
+changes start checked. If anything is already staged, what is staged starts
+checked and nothing else. Whatever is staged for a file left unchecked
+stays staged after the commit (unlike GitHub Desktop, which unstages it).
+How: [003](plans/003_the_checkbox_commit.md).
+
 - ✅ The changed files, with one status each (new, modified, deleted,
   renamed, conflicted) and the diff of the selected one against `HEAD`.
-- ◻️ Checkboxes per file; select lines or hunks in the diff to commit part of
-  a file.
-- ◻️ Commit: summary, description, co-authors (`Co-authored-by:` trailers),
-  amend the last commit. Signing, hooks and templates come from the user's
-  git config, untouched.
+- ✅ Checkboxes per file, and one for all; click a line's gutter or a hunk
+  header in the diff to commit part of a file. A binary, a deletion or a
+  submodule commits whole.
+- ✅ Commit: summary, description, amend the last commit (warns when it is
+  already pushed). Signing and hooks come from the user's git config,
+  untouched. ◻️ Co-authors (`Co-authored-by:` trailers); the summary
+  prefilled from `commit.template`.
 - ◻️ Discard changes to a file or to selected lines, after confirming. The
   discarded content goes to the **Trash**.
 - ◻️ Stash: offered when switching branches with changes; restore or discard

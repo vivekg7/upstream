@@ -112,6 +112,10 @@ public struct FileChange: Sendable, Equatable, Identifiable {
 
     public var id: String { path }
 
+    /// Its path, after the one it was renamed from: what a command about
+    /// this change names, so a rename is committed as one.
+    public var paths: [String] { [originalPath, path].compactMap { $0 } }
+
     public init(path: String, index: ChangeKind?, worktree: ChangeKind?, originalPath: String? = nil) {
         self.path = path
         self.index = index
