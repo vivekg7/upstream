@@ -36,10 +36,16 @@ struct MainView: View {
         .toolbar {
             if model.selected != nil {
                 ToolbarItemGroup(placement: .navigation) { BranchToolbar() }
-                ToolbarItemGroup(placement: .primaryAction) {
-                    if let activity = model.activity {
+                if let activity = model.activity {
+                    // Its own item without the glass: shared with the
+                    // buttons, the capsule shrank to the spinner and left
+                    // it off-centre. A spinner is status, not a control.
+                    ToolbarItem(placement: .primaryAction) {
                         ProgressView().controlSize(.small).help(activity)
                     }
+                    .sharedBackgroundVisibility(.hidden)
+                }
+                ToolbarItemGroup(placement: .primaryAction) {
                     ForgeToolbar()
                     RemoteToolbar()
                 }
