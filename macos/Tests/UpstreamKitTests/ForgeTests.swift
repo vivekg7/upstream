@@ -91,6 +91,20 @@ private let pullRequestsJSON = Data(
     }
 }
 
+@Test func privacyKeepsWhatGraphQLCouldSeeAndPutsNamesInVariables() throws {
+    // Shape from GitHub: a repository it cannot see is null beside an error.
+    let json = Data(
+        #"{"data":{"r0":{"isPrivate":true},"r1":null,"r2":{"isPrivate":false}},"errors":[{"type":"NOT_FOUND","path":["r1"],"message":"Could not resolve to a Repository with the name 'octo/gone'."}]}"#
+            .utf8)
+    #expect(try GitHub.privacy(from: json) == [0: true, 2: false])
+    #expect(throws: ForgeError.self) {
+        try GitHub.privacy(from: Data(#"{"errors":[{"message":"Bad query"}]}"#.utf8))
+    }
+    let query = GitHub.privacyQuery([RepoRef(host: "github.com", owner: "o\"x", name: "n")])
+    #expect(!(query["query"] as! String).contains("o\"x"))
+    #expect(query["variables"] as! [String: String] == ["o0": "o\"x", "n0": "n"])
+}
+
 private let checkRunsJSON = Data(
     """
     {"total_count":3,"check_runs":[
@@ -338,6 +352,38 @@ private func repo(remotes: [(String, String)]) async throws -> (Git, URL) {
         forge.signOut(forge.accounts[0])
         #expect(forge.store.token(for: "github.com") == nil)
         #expect(await forge.credentialArguments(in: dir, remote: "origin") == [])
+    }
+
+    /// The sidebar's icons cost one GraphQL query per signed-in host per
+    /// launch, and nothing while signed out.
+    @MainActor @Test func privacyIsAskedOncePerHostAndNeverSignedOut() async throws {
+        let queries = Mutex(0)
+        Stub.handler.withLock {
+            $0 = { request in
+                if request.url!.path() == "/user" { return json(#"{"login":"octocat"}"#) }
+                queries.withLock { $0 += 1 }
+                return json(#"{"data":{"r0":{"isPrivate":true},"r1":{"isPrivate":true}}}"#)
+            }
+        }
+        let (git, dir) = try await repo(remotes: [])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let forge = try model(git).forge
+        let refs = [
+            RepoRef(host: "github.com", owner: "octo", name: "a"),
+            RepoRef(host: "github.com", owner: "octo", name: "b"),
+            RepoRef(host: "ghe.example.com", owner: "octo", name: "c"),
+        ]
+        await forge.readPrivacy(of: refs)
+        #expect(queries.withLock { $0 } == 0 && forge.privacy.isEmpty)
+
+        try await forge.signIn(host: "github.com", token: "t")
+        await forge.readPrivacy(of: refs)
+        await forge.readPrivacy(of: refs)
+        #expect(queries.withLock { $0 } == 1)
+        #expect(forge.privacy == [refs[0]: true, refs[1]: true])  // nothing asked of ghe.example.com
+
+        forge.signOut(forge.accounts[0])
+        #expect(forge.privacy.isEmpty)
     }
 }
 

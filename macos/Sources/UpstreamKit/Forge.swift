@@ -34,6 +34,9 @@ public final class ForgeModel: Feature {
     public var isPublishing = false
     /// The code to enter in the browser while a device-flow sign-in waits.
     public private(set) var deviceCode: GitHub.DeviceCode?
+    /// Whether each repository in the sidebar is private, for its icon:
+    /// only those on a signed-in host, asked once per launch.
+    public private(set) var privacy: [RepoRef: Bool] = [:]
 
     public struct Remote: Equatable, Sendable {
         public var name: String
@@ -51,6 +54,7 @@ public final class ForgeModel: Feature {
     @ObservationIgnored private var lastChecks: ContinuousClock.Instant?
     @ObservationIgnored private var lastChangeRequests: ContinuousClock.Instant?
     @ObservationIgnored private var checksCommit: String?
+    @ObservationIgnored private var askedPrivacy: Set<RepoRef> = []
     /// One minute, doubling after each failure up to fifteen, so an outage
     /// or a rate limit is not hammered.
     @ObservationIgnored private var interval = ForgeModel.pollInterval
@@ -134,6 +138,8 @@ public final class ForgeModel: Feature {
         accounts.removeAll { $0.host == account.host }
         saveAccounts()
         Task { [http] in await http.forget() }
+        privacy = privacy.filter { $0.key.host != account.host }
+        askedPrivacy = askedPrivacy.filter { $0.host != account.host }
         if repo?.host == account.host {
             poller?.cancel()
             changeRequests = nil
@@ -331,6 +337,30 @@ public final class ForgeModel: Feature {
             if fresh != changeRequests { changeRequests = fresh }
         } catch {
             failed(error)
+        }
+    }
+
+    // MARK: Privacy
+
+    /// Asks each signed-in host, in one query per hundred, whether the
+    /// repositories not asked about yet are private. Visibility seldom
+    /// changes, so once per launch is enough; a failed request is asked
+    /// again on the next call (the app coming to the front), and like a
+    /// failed poll it is not worth the error banner. Nothing is sent for a
+    /// host without an account.
+    func readPrivacy(of repos: some Sequence<RepoRef>) async {
+        let byHost = Dictionary(grouping: Set(repos).subtracting(askedPrivacy), by: \.host)
+        for (host, refs) in byHost {
+            guard let account = account(for: host), let client = client(for: account) else { continue }
+            // Before the await: the sidebar's updates overlap at launch.
+            askedPrivacy.formUnion(refs)
+            do {
+                let found = try await client.privacy(of: refs)
+                guard self.account(for: host) != nil else { continue }  // signed out meanwhile
+                for (ref, isPrivate) in found where privacy[ref] != isPrivate { privacy[ref] = isPrivate }
+            } catch {
+                askedPrivacy.subtract(refs)
+            }
         }
     }
 

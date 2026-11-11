@@ -63,6 +63,38 @@ GitHub Desktop shows both on every repository in its list.
   current. If users ask, revisit with a watcher per repository, which
   costs no process until something changes.
 
+### Private repositories
+
+The owner asked (2026-11-11) for private repositories to look different
+in the sidebar. Only the forge knows a repository's visibility; git has
+no idea.
+
+- **A. One GraphQL query per signed-in host per launch.** Chosen. Each
+  repository's forge repository comes from the remotes already read for
+  its owner (origin first, the same `ForgeModel.repository(for:)` the
+  toolbar uses), and `Forge.privacy(of:)` asks for them all at once: on
+  GitHub, a `repository(owner:name:) { isPrivate }` per repository under
+  an alias, a hundred to a query, names in variables. Public repositories
+  the account does not own (open-source clones) are answered too. Asked
+  once per repository per launch, and again after signing in to a new
+  host; a failed request is asked again when the app next comes to the
+  front. Nothing is sent while signed out.
+- **B. The account's repository list** (`/user/repos`, the clone list).
+  Rejected: it pages through every repository the account can see, which
+  can be thousands for someone in a large organisation, and still says
+  nothing about public repositories the account is not a member of.
+- **C. A GET per repository.** Rejected: fifty requests at launch for the
+  same answer as one query.
+- **D. Keep the answers between launches.** Rejected for now: visibility
+  seldom changes, but a stale "public" on a repository made private is
+  the one wrong answer that matters, and one query per launch is cheap.
+
+The icon is the folder with a small lock in its corner. SF Symbols has no
+such symbol, so `PrivateFolder` draws `lock.fill` over `folder` and masks
+a gap out of the folder around it. A public repository and one whose
+visibility is not known (no forge remote, signed out, not visible to the
+account) keep the plain folder: there is nothing to warn about in either.
+
 ### A missing folder
 
 Shown in its group with a warning icon, dimmed; it cannot be selected,

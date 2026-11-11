@@ -162,6 +162,9 @@ public protocol Forge: Sendable {
         -> ForgeRepository
     func changeRequests(in repo: RepoRef) async throws -> [ChangeRequest]
     func checks(in repo: RepoRef, commit: String) async throws -> [Check]
+    /// Whether each of `repos` is private (true) or public, for the
+    /// sidebar's icons; one the account cannot see is left out.
+    func privacy(of repos: [RepoRef]) async throws -> [RepoRef: Bool]
 }
 
 public enum ForgeError: Error, LocalizedError, Equatable {

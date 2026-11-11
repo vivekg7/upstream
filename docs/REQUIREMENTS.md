@@ -61,7 +61,8 @@ Status: ✅ built, ◻️ to build.
 - ✅ A list of repositories in the sidebar, grouped by owner (host and
   owner path of origin's URL, else another remote's; "Other" without one),
   filterable. A folder that has moved or gone is shown as missing, with
-  Locate… and Remove.
+  Locate… and Remove. A private repository's folder has a lock on it
+  (asked of the signed-in forge, so signed out every folder is plain).
   ✅ Add a local folder (its top-level working tree is what is added).
   ✅ Remove from the list (the folder is untouched).
 - Unlike GitHub Desktop, the rows show no change counts or ahead/behind:

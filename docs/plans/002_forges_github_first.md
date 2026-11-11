@@ -86,7 +86,9 @@ actions), and `Upstream/ForgeViews.swift`, `Upstream/Main.swift`.
 
 - **The interface** is the `Forge` protocol, one value per signed-in
   account: `repositories()`, `owners()` and `createRepository(…)` for
-  publishing, `changeRequests(in:)`, `checks(in:commit:)`. What needs no
+  publishing, `changeRequests(in:)`, `checks(in:commit:)`, and
+  `privacy(of:)` for the sidebar's lock icons
+  ([009](009_repositories_and_settings.md#private-repositories)). What needs no
   account sits on `ForgeKind` and `RepoRef`: `repository(for: remoteURL)`
   (the `matches` above), the commit page and the new-change-request form.
   Sign-in is not in the protocol: each forge's sign-in differs (device
@@ -175,6 +177,7 @@ Written down because it will be audited, and because each line is a choice.
 | Signed out                                                                  | Nothing. The commit link and the new-PR form are built from the remote URL.                                                                                                              |
 | In front, signed in, current branch pushed                                  | Two conditional GETs a minute (check runs, statuses). A 304 does not count against GitHub's rate limit, so a settled commit costs two tiny round trips and no quota.                     |
 | A repository is opened, the app comes to the front, or the PR popover opens | One GraphQL query for the open PRs, at most once per 30 s. Never on a timer: GraphQL has no conditional requests, and the list is only looked at in the popover.                         |
+| Launch, or signing in to a host                                             | One GraphQL query per signed-in host, a hundred repositories each, for which repositories in the sidebar are private; again only for ones not answered yet, or after a failure.          |
 | HEAD, the branch or its upstream moves                                      | The two check GETs at once, then back to the minute.                                                                                                                                     |
 | In the background                                                           | Only while a check on the current branch is pending, once a minute, for the notification; stops when it settles. Otherwise nothing, until the app comes back.                            |
 | A request fails                                                             | The interval doubles, up to 15 minutes, so an outage or a rate limit is not hammered. A 401 stops polling until the user signs in again. Failures go to a tooltip, not the error banner. |

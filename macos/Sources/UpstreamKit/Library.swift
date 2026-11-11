@@ -11,6 +11,11 @@ public final class LibraryModel: Feature {
     /// Each repository's owner, from its remote URL. A repository with no
     /// remote on a host has no entry once `update` has read it.
     public private(set) var owners: [URL: RemoteOwner] = [:]
+    /// Each repository on a forge, from the same remote as its owner, for
+    /// its privacy (`isPrivate`). Rebuilt from `remotes` on every update,
+    /// since an Enterprise host is recognised only once signed in there.
+    public private(set) var forgeRepositories: [URL: RepoRef] = [:]
+    @ObservationIgnored private var remotes: [URL: [String: String]] = [:]
     /// Repositories whose folder is gone: moved, renamed or deleted.
     public private(set) var missing: Set<URL> = []
     /// Whether every repository's remotes have been read once, so the
@@ -58,21 +63,38 @@ public final class LibraryModel: Feature {
         let toRead = repositories.filter {
             !missing.contains($0) && (!read.contains($0) || $0 == app.selected)
         }
-        let found = await withTaskGroup(of: (URL, RemoteOwner?).self) { group in
+        let found = await withTaskGroup(of: (URL, [String: String]).self) { group in
             for repo in toRead {
-                group.addTask { (repo, RemoteOwner(remotes: (try? await git.remoteURLs(in: repo)) ?? [:])) }
+                group.addTask { (repo, (try? await git.remoteURLs(in: repo)) ?? [:]) }
             }
-            var found: [(URL, RemoteOwner?)] = []
+            var found: [(URL, [String: String])] = []
             for await pair in group { found.append(pair) }
             return found
         }
         // A read cut short by cancellation is not "no remote".
         guard !Task.isCancelled else { return }
-        for (repo, owner) in found {
+        for (repo, urls) in found {
+            let owner = RemoteOwner(remotes: urls)
             if owners[repo] != owner { owners[repo] = owner }
+            remotes[repo] = urls
             read.insert(repo)
         }
         loaded = true
+        let forge = app.forge
+        let repos = repositories.reduce(into: [URL: RepoRef]()) { refs, repo in
+            let urls = remotes[repo] ?? [:]
+            refs[repo] =
+                (["origin"] + urls.keys.sorted()).lazy
+                .compactMap { urls[$0].flatMap(forge.repository(for:)) }.first
+        }
+        if repos != forgeRepositories { forgeRepositories = repos }
+        await forge.readPrivacy(of: repos.values)
+    }
+
+    /// true for a private repository, false for a public one, nil when not
+    /// known: no remote on a forge, signed out of its host, or not asked yet.
+    public func isPrivate(_ repo: URL) -> Bool? {
+        forgeRepositories[repo].flatMap { app?.forge.privacy[$0] }
     }
 
     static func isDirectory(_ url: URL) -> Bool {

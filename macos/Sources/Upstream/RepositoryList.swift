@@ -54,8 +54,12 @@ struct RepositoryList: View {
         }
         // Folders are checked again whenever the app comes to the front, a
         // stat each; remotes are read once per repository (see `update`).
-        .task(id: Trigger(repositories: model.repositories, selected: model.selected, active: model.isActive))
-        {
+        // Signing in asks the new host which of its repositories are private.
+        .task(
+            id: Trigger(
+                repositories: model.repositories, selected: model.selected, active: model.isActive,
+                hosts: model.forge.accounts.map(\.host))
+        ) {
             await library.update()
         }
     }
@@ -64,16 +68,24 @@ struct RepositoryList: View {
         let repositories: [URL]
         let selected: URL?
         let active: Bool
+        let hosts: [String]
     }
 
     private func row(_ url: URL) -> some View {
         let missing = model.library.missing.contains(url)
+        let isPrivate = !missing && model.library.isPrivate(url) == true
         return Label {
             Text(url.lastPathComponent).foregroundStyle(missing ? .secondary : .primary)
         } icon: {
-            Image(systemName: missing ? "exclamationmark.triangle" : "folder")
+            if missing {
+                Image(systemName: "exclamationmark.triangle")
+            } else if isPrivate {
+                PrivateFolder()
+            } else {
+                Image(systemName: "folder")
+            }
         }
-        .help(missing ? "Not found at \(url.path)" : url.path)
+        .help(missing ? "Not found at \(url.path)" : isPrivate ? "\(url.path) (private)" : url.path)
         // A missing folder has nothing to show; it can only be located or removed.
         .selectionDisabled(missing)
         .contextMenu {
@@ -98,5 +110,33 @@ struct RepositoryList: View {
             return
         }
         Task { await model.library.locate(url, at: new) }
+    }
+}
+
+/// A folder with a lock in its corner, for a private repository. SF Symbols
+/// has no such symbol, so the lock is drawn over the folder, with a gap cut
+/// out of the folder around it: a mask, not a fill, so the sidebar's
+/// material and a selected row's colour show through. The hole is an
+/// even-odd path; a `destinationOut` blend in the mask erased the whole
+/// folder in the sidebar's vibrant rendering.
+private struct PrivateFolder: View {
+    var body: some View {
+        Image(systemName: "folder")
+            .mask { Notch().fill(style: FillStyle(eoFill: true)) }
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "lock.fill").font(.system(size: 8, weight: .bold)).offset(x: 3, y: 2)
+            }
+            .accessibilityLabel("Private")
+    }
+
+    /// Everything but the lock's corner, with a point to spare around it.
+    private struct Notch: Shape {
+        func path(in rect: CGRect) -> Path {
+            var path = Path(rect.insetBy(dx: -4, dy: -4))
+            path.addRoundedRect(
+                in: CGRect(x: rect.maxX - 5, y: rect.maxY - 7.5, width: 10, height: 12),
+                cornerSize: CGSize(width: 2, height: 2))
+            return path
+        }
     }
 }
