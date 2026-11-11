@@ -168,7 +168,6 @@ before.
    [009](009_repositories_and_settings.md)), and the diff view
    ([007](007_the_diff_view.md)).
 6. ✅ GitHub sign-in, PRs and CI ([002](002_forges_github_first.md)).
-   Browser sign-in waits on registering the OAuth App.
 7. Linux, in a plan of its own once the Mac app covers the Changes, History
    and Branches requirements.
 

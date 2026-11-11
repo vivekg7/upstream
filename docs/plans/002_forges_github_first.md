@@ -1,6 +1,6 @@
 # 002 — Forges behind one interface, GitHub first
 
-**Status:** `IN PROGRESS` — macOS: GitHub sign-in by token (browser sign-in waits on the OAuth App), clone list, publish, pull requests, CI, notification, credential helper; GitLab, Bitbucket and Linux not started
+**Status:** `IN PROGRESS` — macOS: GitHub sign-in in the browser or by token, clone list, publish, pull requests, CI, notification, credential helper; GitLab, Bitbucket and Linux not started
 **Started:** 2026-11-11
 
 ## Problem
@@ -110,12 +110,10 @@ actions), and `Upstream/ForgeViews.swift`, `Upstream/Main.swift`.
   keychain, because the data protection keychain needs an entitlement an ad
   hoc signed app cannot have.
 - **Sign-in.** The device flow on github.com only. An OAuth App is
-  registered per server, so Enterprise hosts sign in with a token. While
-  `GitHub.clientID` is empty (see open questions) the browser button is
-  disabled with a note, and a pasted personal access token works on every
-  host. The token is checked with `GET /user`. A classic or OAuth token
-  lists its scopes in `X-OAuth-Scopes`, and one without `repo` is refused
-  at sign-in rather than at the first push. Fine-grained tokens send no
+  registered per server, so Enterprise hosts sign in with a token; a
+  pasted personal access token works on every host. The token is checked
+  with `GET /user`. A classic or OAuth token lists its scopes in
+  `X-OAuth-Scopes`, and one without `repo` is refused at sign-in rather than at the first push. Fine-grained tokens send no
   scopes header and are taken on trust. Scopes asked for: `repo` (private
   repositories, HTTPS push, creating repositories), `workflow` (pushing
   `.github/workflows`, which `repo` alone cannot), `read:org` (organisations
@@ -191,8 +189,8 @@ only cache, at most 64 answers in memory.
 1. ✅ The interface. No fake implementation: the views are built against
    `ForgeModel`, and the tests stub the network with `URLProtocol` instead.
 2. ✅ GitHub: token sign-in and the Keychain, then the clone list. The
-   device flow is built and tested against the stub; it waits on the
-   OAuth App.
+   device flow is tested against the stub, and runs against the
+   registered OAuth App.
 3. ✅ The credential helper mode. The precedence question is settled by a
    test against the installed git. ◻️ A real push to a scratch repository
    on GitHub, by hand, once an account is set up.
@@ -201,14 +199,14 @@ only cache, at most 64 answers in memory.
 
 ## Open questions
 
-- **Registering the OAuth App** (owner). On GitHub: Settings → Developer
-  settings → OAuth Apps → New OAuth App, under the owner's account or,
-  better, an organisation for the project. Application name `Upstream`;
-  homepage URL the project's repository; authorization callback URL the
-  same (required by the form, unused by the device flow); tick **Enable
-  Device Flow**. No client secret is needed: do not generate one. Put the
-  Client ID in `GitHub.clientID` (`macos/Sources/UpstreamKit/GitHub.swift`).
-  Until then, tokens work.
+- **The OAuth App: registered (2026-11-11)** under the owner's account, as
+  `Upstream`, with the repository as homepage and callback URL (the form
+  requires one; the device flow never uses it) and **Enable Device Flow**
+  ticked. It has no client secret, and must not get one. The Client ID is
+  in `GitHub.clientID`. It can move to a project organisation later with
+  Transfer ownership. To register another (a fork shipping its own build):
+  Settings → Developer settings → OAuth Apps → New OAuth App, the same
+  fields, then the new Client ID in `GitHub.clientID`.
 - **Helper precedence: answered (2026-11-11, git 2.54).** A host-scoped
   `credential.<url>.helper` passed with `-c` is **not** consulted first.
   git collects every matching helper in config order, system, global,

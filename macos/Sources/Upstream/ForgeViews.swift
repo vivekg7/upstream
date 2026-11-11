@@ -338,14 +338,7 @@ struct AccountsSettings: View {
                     }
                 } else {
                     Button("Sign In with Browser…") { signInWithBrowser() }
-                        .disabled(GitHub.clientID.isEmpty || busy)
-                    if GitHub.clientID.isEmpty {
-                        Text(
-                            "Browser sign-in is not in this build yet: Upstream's GitHub OAuth App is not registered. Use a personal access token below."
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
+                        .disabled(busy)
                 }
             }
             Section("Personal access token") {

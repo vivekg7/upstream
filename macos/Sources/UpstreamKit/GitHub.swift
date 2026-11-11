@@ -8,11 +8,10 @@ public struct GitHub: Forge {
     let token: String
     let http: HTTP
 
-    /// The OAuth App's client ID for the device flow on github.com. Empty
-    /// until the App is registered (002, open questions); while it is, the
-    /// browser sign-in is disabled and a personal access token is the way in.
-    /// A client ID is not a secret: the device flow has none.
-    public static let clientID = ""
+    /// The OAuth App's client ID for the device flow on github.com
+    /// (registered 2026-11-11, 002). A client ID is not a secret: the device
+    /// flow has none, so the App has no client secret either.
+    public static let clientID = "Ov23li2NGenRTteirV2s"
     /// `repo` to read private repositories, push over HTTPS and create
     /// repositories; `workflow` to push changes to `.github/workflows`,
     /// which `repo` alone is refused; `read:org` to list the organisations

@@ -90,5 +90,5 @@ wrong.
 | [005 — Branches and remotes](005_branches_and_remotes.md)                       | `IN PROGRESS` — branches, merge/rebase preview, remotes, background fetch   |
 | [004 — Refreshing on file changes](004_refreshing_on_file_changes.md)           | `IN PROGRESS` — FSEvents, ignored-path filter, coalesced refresh, measured  |
 | [003 — The checkbox commit](003_the_checkbox_commit.md)                         | `MERGED` — files, lines, amend, co-authors, the commit template             |
-| [002 — Forges behind one interface, GitHub first](002_forges_github_first.md)   | `IN PROGRESS` — GitHub: sign-in by token, PRs, CI; browser sign-in waits    |
+| [002 — Forges behind one interface, GitHub first](002_forges_github_first.md)   | `IN PROGRESS` — GitHub: sign-in in the browser or by token, PRs, CI         |
 | [001 — Native clients on the system's git](001_native_clients_on_system_git.md) | `IN PROGRESS` — macOS: the v1 requirements; Linux not started               |
