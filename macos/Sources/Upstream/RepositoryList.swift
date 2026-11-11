@@ -31,17 +31,30 @@ struct RepositoryList: View {
         }
         .searchable(text: $filter, placement: .sidebar, prompt: "Filter")
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            Menu("Add", systemImage: "plus") {
+            Menu {
                 Button("New Repository…") { library.sheet = .create }
                 Button("Add Local Repository…") {
                     if let url = chooseFolder(prompt: "Add Repository") { Task { await model.add(url) } }
                 }
                 Button("Clone Repository…") { library.sheet = .clone }
+            } label: {
+                // A bubble in the accent colour: a bare plus sat on whichever
+                // row scrolled under it and read as part of it. Drawn, not
+                // `.glassProminent`, which is clear grey glass whenever the
+                // window is not key, and the rows showed through it.
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(Color.accentColor, in: .circle)
+                    .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+                    .contentShape(.circle)
             }
-            .labelStyle(.iconOnly)
             .menuStyle(.button)
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
             .menuIndicator(.hidden)
+            .accessibilityLabel("Add")
+            .help("Add a repository")
             .fixedSize()
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(8)
