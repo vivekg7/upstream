@@ -199,6 +199,24 @@ How: [003](plans/003_the_checkbox_commit.md).
   older than 2.38 is named in a warning at launch and in Settings.
 - Appearance follows the system. There is no separate theme setting.
 
+### Keyboard and help
+
+The owner's ask (2026-11-11): simple keyboard navigation that feels
+obvious, a help page and a keyboard shortcuts page
+([010](plans/010_keyboard_and_help.md)).
+
+- ✅ GitHub Desktop's shortcuts in the menus. ⌘1 and ⌘2 show Changes and
+  History with the keyboard in the list; ⌘T goes to the sidebar's filter,
+  and ↓ from there opens the first match.
+- ✅ ← and → move between the columns' lists (repositories, changes or
+  history, a commit's files), as between Finder's columns; ↑ and ↓ move
+  within one. Arriving in a list with nothing selected selects its first
+  row.
+- ✅ Space checks or unchecks the selected files.
+- ✅ Help → Upstream Help: a window of short topics, drawn by the app and
+  offline. Help → Keyboard Shortcuts (⌘/) opens it on the full list,
+  which is read from the same table as the menus.
+
 ## Not in v1
 
 - GitLab and Bitbucket forge features (plain git with them works in v1).

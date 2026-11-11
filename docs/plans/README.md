@@ -81,14 +81,15 @@ wrong.
 
 ## Index
 
-| Plan                                                                            | Status                                                                      |
-| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [009 — Repositories and settings](009_repositories_and_settings.md)             | `IN PROGRESS` — sidebar, clone, create, open in, Settings                   |
-| [008 — Discard, ignore and conflicts](008_discard_ignore_and_conflicts.md)      | `IN PROGRESS` — discard to the Trash, ignore, the conflict banner           |
-| [007 — The diff view](007_the_diff_view.md)                                     | `IN PROGRESS` — table renderer, split, whitespace, words, images, size caps |
-| [006 — History](006_history.md)                                                 | `IN PROGRESS` — paged history, commit actions, compare                      |
-| [005 — Branches and remotes](005_branches_and_remotes.md)                       | `IN PROGRESS` — branches, merge/rebase preview, remotes, background fetch   |
-| [004 — Refreshing on file changes](004_refreshing_on_file_changes.md)           | `IN PROGRESS` — FSEvents, ignored-path filter, coalesced refresh, measured  |
-| [003 — The checkbox commit](003_the_checkbox_commit.md)                         | `MERGED` — files, lines, amend, co-authors, the commit template             |
-| [002 — Forges behind one interface, GitHub first](002_forges_github_first.md)   | `IN PROGRESS` — GitHub: sign-in in the browser or by token, PRs, CI         |
-| [001 — Native clients on the system's git](001_native_clients_on_system_git.md) | `IN PROGRESS` — macOS: the v1 requirements; Linux not started               |
+| Plan                                                                            | Status                                                                            |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [010 — Keyboard and help](010_keyboard_and_help.md)                             | `MERGED` — ← → between the lists, ⌘1 ⌘2 ⌘T, Space, Help window and shortcuts page |
+| [009 — Repositories and settings](009_repositories_and_settings.md)             | `IN PROGRESS` — sidebar, clone, create, open in, Settings                         |
+| [008 — Discard, ignore and conflicts](008_discard_ignore_and_conflicts.md)      | `IN PROGRESS` — discard to the Trash, ignore, the conflict banner                 |
+| [007 — The diff view](007_the_diff_view.md)                                     | `IN PROGRESS` — table renderer, split, whitespace, words, images, size caps       |
+| [006 — History](006_history.md)                                                 | `IN PROGRESS` — paged history, commit actions, compare                            |
+| [005 — Branches and remotes](005_branches_and_remotes.md)                       | `IN PROGRESS` — branches, merge/rebase preview, remotes, background fetch         |
+| [004 — Refreshing on file changes](004_refreshing_on_file_changes.md)           | `IN PROGRESS` — FSEvents, ignored-path filter, coalesced refresh, measured        |
+| [003 — The checkbox commit](003_the_checkbox_commit.md)                         | `MERGED` — files, lines, amend, co-authors, the commit template                   |
+| [002 — Forges behind one interface, GitHub first](002_forges_github_first.md)   | `IN PROGRESS` — GitHub: sign-in in the browser or by token, PRs, CI               |
+| [001 — Native clients on the system's git](001_native_clients_on_system_git.md) | `IN PROGRESS` — macOS: the v1 requirements; Linux not started                     |

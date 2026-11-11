@@ -432,6 +432,18 @@ public final class AppModel {
         draft.selection[change.id] = checked ? .all : FileSelection.nothing
     }
 
+    /// Space on the selected files: checks them all, unless every one is
+    /// checked already, then unchecks them. A partly checked file counts as
+    /// unchecked, as a click on its box does; flipping each file on its own
+    /// would leave a mixed selection mixed. Conflicted files are left out.
+    public func toggleChecked(_ changes: [FileChange]) {
+        let changes = changes.filter { !$0.conflicted }
+        let check = !changes.allSatisfy { selection(of: $0) == .all }
+        var d = draft
+        for change in changes { d.selection[change.id] = check ? .all : .nothing }
+        draft = d
+    }
+
     public func setAllChecked(_ checked: Bool) {
         // One write: each write through `draft` copies the whole selection.
         var d = draft

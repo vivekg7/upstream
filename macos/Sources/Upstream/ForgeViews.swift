@@ -48,7 +48,7 @@ struct CreatePullRequestButton: View {
 
     var body: some View {
         Button("Create Pull Request") { openNewChangeRequest(model.forge) }
-            .keyboardShortcut("r", modifiers: [.command, .option])
+            .keyboardShortcut(Shortcut.createPullRequest)
             .disabled(model.forge.newChangeRequestBlocker != nil)
     }
 }

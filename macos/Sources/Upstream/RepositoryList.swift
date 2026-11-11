@@ -8,6 +8,7 @@ import UpstreamKit
 struct RepositoryList: View {
     @Environment(AppModel.self) private var model
     @State private var filter = ""
+    let focus: FocusState<Pane?>.Binding
 
     var body: some View {
         @Bindable var model = model
@@ -29,7 +30,16 @@ struct RepositoryList: View {
                 ForEach(model.repositories, id: \.self, content: row)
             }
         }
+        .focused(focus, equals: .repositories)
+        .onKeyPress(.rightArrow) {
+            moveFocus(to: model.tab == .changes ? .changes : .history, focus, model)
+            return .handled
+        }
         .searchable(text: $filter, placement: .sidebar, prompt: "Filter")
+        // ↓ in the field goes into the list and opens the first match: the
+        // search field's own behaviour. Return does nothing there, and
+        // `onSubmit(of: .search)` never runs for a field in the sidebar.
+        .searchFocused(focus, equals: .filter)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Menu {
                 Button("New Repository…") { library.sheet = .create }

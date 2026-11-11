@@ -6,6 +6,7 @@ struct UpstreamApp: App {
     // The git chosen in Settings applies from the next launch.
     @State private var model = AppModel(
         git: Git.locate(preferred: UserDefaults.standard.string(forKey: SettingsKey.gitPath)))
+    @State private var help = HelpModel()
 
     var body: some Scene {
         Window("Upstream", id: "main") {
@@ -28,19 +29,26 @@ struct UpstreamApp: App {
         .commands {
             RepositoryCommands(model: model)
             BranchCommands(model: model)
+            ViewCommands(model: model)
+            HelpCommands(help: help)
             CommandGroup(replacing: .newItem) {
-                Button("Add Local Repository…") { addRepository() }
-                    .keyboardShortcut("o")
-            }
-            CommandGroup(after: .toolbar) {
-                Button("Refresh") { Task { await model.refresh() } }
-                    .keyboardShortcut("r")
+                Button(Shortcut.addLocalRepository.name) { addRepository() }
+                    .keyboardShortcut(Shortcut.addLocalRepository)
             }
         }
         Settings {
             SettingsView()
                 .environment(model)
         }
+        Window("Upstream Help", id: HelpView.windowID) {
+            HelpView()
+                .environment(help)
+                .frame(minWidth: 560, minHeight: 360)
+        }
+        .defaultSize(width: 780, height: 560)
+        // Opened from the Help menu only: never at launch, nor restored.
+        .defaultLaunchBehavior(.suppressed)
+        .restorationBehavior(.disabled)
     }
 
     @MainActor private func addRepository() {

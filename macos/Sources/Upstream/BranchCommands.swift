@@ -12,37 +12,37 @@ struct BranchCommands: Commands {
         let current = branches.current
         CommandMenu("Branch") {
             Button("Show Branches") { branches.showsList = true }
-                .keyboardShortcut("b")
+                .keyboardShortcut(Shortcut.showBranches)
                 .disabled(model.status == nil)
             Button("New Branch…") { branches.sheet = .create(from: nil) }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .keyboardShortcut(Shortcut.newBranch)
                 .disabled(!ready || !model.hasHead)
             Button("Rename…") { if let current { branches.sheet = .rename(current) } }
-                .keyboardShortcut("r", modifiers: [.command, .shift])
+                .keyboardShortcut(Shortcut.renameBranch)
                 .disabled(!ready || current == nil)
             Divider()
             Button("Stash All Changes") { Task { await branches.stashChanges() } }
-                .keyboardShortcut("s", modifiers: [.command, .shift])
+                .keyboardShortcut(Shortcut.stash)
                 .disabled(!ready || current == nil || model.status?.files.isEmpty != false)
             Divider()
             Button("Merge into Current Branch…") { branches.sheet = .merge(.merge, nil) }
-                .keyboardShortcut("m", modifiers: [.command, .shift])
+                .keyboardShortcut(Shortcut.merge)
                 .disabled(!ready || !model.hasHead)
             Button("Squash and Merge into Current Branch…") { branches.sheet = .merge(.squash, nil) }
-                .keyboardShortcut("m", modifiers: [.command, .shift, .option])
+                .keyboardShortcut(Shortcut.squashMerge)
                 .disabled(!ready || !model.hasHead)
             Button("Rebase Current Branch…") { branches.sheet = .merge(.rebase, nil) }
-                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .keyboardShortcut(Shortcut.rebase)
                 .disabled(!ready || current == nil)
             Divider()
             Button("Fetch") { Task { await branches.fetch() } }
-                .keyboardShortcut("t", modifiers: [.command, .shift])
+                .keyboardShortcut(Shortcut.fetch)
                 .disabled(!ready || branches.fetchRemote == nil)
             Button("Pull") { Task { await branches.pull() } }
-                .keyboardShortcut("p", modifiers: [.command, .shift])
+                .keyboardShortcut(Shortcut.pull)
                 .disabled(!ready || current?.upstreamRemote == nil || current?.upstreamGone == true)
             Button(branches.action == .publish ? "Publish Branch" : "Push") { push() }
-                .keyboardShortcut("p")
+                .keyboardShortcut(Shortcut.push)
                 .disabled(!ready || !(branches.action == .publish || (model.status?.branch.ahead ?? 0) > 0))
             Divider()
             CreatePullRequestButton(model: model)

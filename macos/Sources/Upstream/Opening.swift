@@ -143,26 +143,26 @@ struct RepositoryCommands: Commands {
     var body: some Commands {
         CommandGroup(before: .newItem) {
             Button("New Repository…") { model.library.sheet = .create }
-                .keyboardShortcut("n")
+                .keyboardShortcut(Shortcut.newRepository)
         }
         CommandGroup(after: .newItem) {
             Button("Clone Repository…") { model.library.sheet = .clone }
-                .keyboardShortcut("o", modifiers: [.command, .shift])
+                .keyboardShortcut(Shortcut.cloneRepository)
         }
         CommandMenu("Repository") {
             Group {
                 Button("Open in \(ExternalApp.chosen(ExternalApp.editors, id: editor)?.name ?? "Editor")") {
                     model.selected.map(openInEditor)
                 }
-                .keyboardShortcut("a", modifiers: [.command, .shift])
+                .keyboardShortcut(Shortcut.openInEditor)
                 Button(
                     "Open in \(ExternalApp.chosen(ExternalApp.terminals, id: terminal)?.name ?? "Terminal")"
                 ) {
                     model.selected.map(openInTerminal)
                 }
-                .keyboardShortcut("`", modifiers: .control)
+                .keyboardShortcut(Shortcut.openInTerminal)
                 Button("Show in Finder") { model.selected.map(showInFinder) }
-                    .keyboardShortcut("f", modifiers: [.command, .shift])
+                    .keyboardShortcut(Shortcut.showInFinder)
             }
             .disabled(model.selected.map { model.library.missing.contains($0) } ?? true)
             Divider()

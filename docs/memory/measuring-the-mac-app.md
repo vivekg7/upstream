@@ -49,6 +49,16 @@ repositories -array <path>` and `defaults delete Upstream` afterwards.
 --env … --args -repositories '("/path")' -gitPath /path/gitlog.sh`. It
   runs the real bundle without touching the owner's domain; `defaults
 delete io.github.vivekg7.upstream.bench` afterwards.
+- **Testing the keyboard** needs the app in front: keys posted to it
+  (`CGEvent.postToPid`) while it is behind reach no window, and the bare
+  binary cannot be brought to the front at all. Wrap the release binary
+  in a throwaway bundle with its own id (as above, e.g. `….keytest`),
+  `open -n` it with `--args -repositories '(…)'`, check `lsappinfo front`
+  names its pid (`tell application id "…keytest" to activate` if not),
+  then post the keys with a few lines of `swift` and screenshot after
+  each. Give the front back to the app that had it, and ask the owner
+  first: their typing goes to the app while it runs. `open --stdout
+file` captures `print`, if stdout is unbuffered (`setvbuf`) for the run.
 - **Counting git processes:** point `-gitPath` at a two-line wrapper that
   appends `date +%s.%N` and `$*` to a log, then `exec /usr/bin/git "$@"`.
   Every command the app runs, with its start time, is in the log; that is

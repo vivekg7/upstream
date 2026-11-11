@@ -7,6 +7,7 @@ import UpstreamKit
 struct HistoryView: View {
     @Environment(AppModel.self) private var model
     @State private var prompt: CommitPrompt?
+    let focus: FocusState<Pane?>.Binding
 
     var body: some View {
         @Bindable var history = model.history
@@ -25,6 +26,24 @@ struct HistoryView: View {
                     .controlSize(.small)
                     .frame(maxWidth: .infinity)
                     .task(id: history.commits.count) { await history.loadMore() }
+            }
+        }
+        .focused(focus, equals: .history)
+        .onKeyPress(.leftArrow) {
+            moveFocus(to: .repositories, focus, model)
+            return .handled
+        }
+        .onKeyPress(.rightArrow) {
+            guard history.detail?.id == history.selection, !history.files.isEmpty else { return .ignored }
+            moveFocus(to: .commitFiles, focus, model)
+            return .handled
+        }
+        // ⌘2 puts the keyboard here before the first page has loaded, so
+        // the first commit is selected when it arrives, as `moveFocus` does
+        // for a list that is already there.
+        .onChange(of: history.commits.first?.id) {
+            if focus.wrappedValue == .history, history.selection == nil {
+                history.selection = history.commits.first?.id
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) { CompareBar() }
@@ -141,6 +160,7 @@ private struct RefBadge: View {
 struct HistoryDetailView: View {
     @Environment(AppModel.self) private var model
     @State private var prompt: CommitPrompt?
+    let focus: FocusState<Pane?>.Binding
 
     var body: some View {
         let history = model.history
@@ -149,7 +169,7 @@ struct HistoryDetailView: View {
                 CommitHeader(detail: detail, ask: { prompt = $0 })
                 Divider()
                 HSplitView {
-                    CommitFileList()
+                    CommitFileList(focus: focus)
                         .frame(minWidth: 180, idealWidth: 260, maxWidth: 420)
                     Group {
                         if let diff = history.fileDiff,
@@ -262,6 +282,7 @@ private struct CommitHeader: View {
 /// the rows in view, and only the selected file's diff is ever read.
 private struct CommitFileList: View {
     @Environment(AppModel.self) private var model
+    let focus: FocusState<Pane?>.Binding
 
     var body: some View {
         @Bindable var history = model.history
@@ -276,6 +297,11 @@ private struct CommitFileList: View {
                     .truncationMode(.head)
                     .help(file.originalPath.map { "\($0) → \(file.path)" } ?? file.path)
             }
+        }
+        .focused(focus, equals: .commitFiles)
+        .onKeyPress(.leftArrow) {
+            moveFocus(to: .history, focus, model)
+            return .handled
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             Text(history.files.count == 1 ? "1 changed file" : "\(history.files.count) changed files")

@@ -198,6 +198,24 @@ private func show(_ object: String, _ git: Git, _ dir: URL) async throws -> Stri
     #expect(picked.map { d.lines[$0].text } == ["staged"])
 }
 
+@MainActor @Test func spaceOnAMixedSelectionChecksEveryFileBeforeUncheckingAny() async throws {
+    let (git, dir) = try await repo(["a": "a\n", "b": "b\n"])
+    defer { try? FileManager.default.removeItem(at: dir) }
+    try write("a2\n", "a", in: dir)
+    try write("b2\n", "b", in: dir)
+    let model = AppModel(git: git, defaults: try #require(UserDefaults(suiteName: UUID().uuidString)))
+    await model.add(dir)
+    await model.refresh()
+    let files = model.status?.files ?? []
+    try #require(files.count == 2)
+    model.setChecked(false, files[1])
+
+    model.toggleChecked(files)
+    #expect(files.map(model.selection) == [.all, .all])
+    model.toggleChecked(files)
+    #expect(files.map(model.selection) == [.nothing, .nothing])
+}
+
 @Test func coAuthorsAreTrailersThatGitFormats() async throws {
     let (git, dir) = try await repo(["a.txt": "a\n"])
     defer { try? FileManager.default.removeItem(at: dir) }

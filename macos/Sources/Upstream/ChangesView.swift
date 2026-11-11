@@ -7,6 +7,7 @@ struct ChangesView: View {
     /// The rows selected in the list. Several can be, for a context menu;
     /// the diff shows only when one is.
     @State private var picked: Set<FileChange.ID> = []
+    let focus: FocusState<Pane?>.Binding
 
     var body: some View {
         let files = model.status?.files ?? []
@@ -23,6 +24,17 @@ struct ChangesView: View {
         }
         .contextMenu(forSelectionType: FileChange.ID.self) { ids in
             ChangeMenu(changes: files.filter { ids.contains($0.id) }, all: files)
+        }
+        .focused(focus, equals: .changes)
+        .onKeyPress(.leftArrow) {
+            moveFocus(to: .repositories, focus, model)
+            return .handled
+        }
+        // Space checks the selected files, as in GitHub Desktop.
+        .onKeyPress(.space) {
+            guard model.operation == nil, !picked.isEmpty else { return .ignored }
+            model.toggleChecked(files.filter { picked.contains($0.id) })
+            return .handled
         }
         .onChange(of: picked) { model.selectedFile = picked.count == 1 ? picked.first : nil }
         .onChange(of: model.selectedFile, initial: true) {
@@ -271,7 +283,7 @@ private struct CommitForm: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.return, modifiers: .command)
+                .keyboardShortcut(Shortcut.commit)
                 .disabled(model.continueBlocker != nil || model.activity != nil)
                 .help(model.continueBlocker ?? "")
             } else {
@@ -282,7 +294,7 @@ private struct CommitForm: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.return, modifiers: .command)
+                .keyboardShortcut(Shortcut.commit)
                 .disabled(model.commitBlocker != nil || model.isCommitting)
                 .help(model.commitBlocker ?? "")
             }
