@@ -15,8 +15,16 @@ struct RepositoryList: View {
         @Bindable var library = model.library
         List(selection: $model.selected) {
             if library.loaded {
+                let recent = library.recent(filter: filter)
+                if !recent.isEmpty {
+                    section(LibraryModel.recentSection) {
+                        ForEach(recent, id: \.self, content: row)
+                    } header: {
+                        Text("Recent")
+                    }
+                }
                 ForEach(library.groups(filter: filter), id: \.owner) { group in
-                    Section {
+                    section(LibraryModel.sectionID(group.owner)) {
                         ForEach(group.repositories, id: \.self, content: row)
                     } header: {
                         if let owner = group.owner {
@@ -92,6 +100,30 @@ struct RepositoryList: View {
         let selected: URL?
         let active: Bool
         let hosts: [String]
+    }
+
+    /// A section the user can collapse from its header, and that stays
+    /// collapsed across launches. While filtering every section is open and
+    /// has no disclosure, so no match is hidden in a collapsed one.
+    @ViewBuilder private func section(
+        _ id: String, @ViewBuilder rows: () -> some View, @ViewBuilder header: () -> some View
+    ) -> some View {
+        if filter.trimmingCharacters(in: .whitespaces).isEmpty {
+            let library = model.library
+            Section(
+                isExpanded: Binding {
+                    !library.collapsed.contains(id)
+                } set: {
+                    library.setExpanded($0, id)
+                }
+            ) {
+                rows()
+            } header: {
+                header()
+            }
+        } else {
+            Section(content: rows, header: header)
+        }
     }
 
     private func row(_ url: URL) -> some View {

@@ -10,6 +10,7 @@ public final class AppModel {
     public var selected: URL? {
         didSet {
             guard selected != oldValue else { return }
+            countAsOpened()
             status = nil
             selectedFile = nil
             diff = nil
@@ -78,19 +79,33 @@ public final class AppModel {
     public let history = HistoryModel()
     public let forge = ForgeModel()
     public let library = LibraryModel()
+    /// The repositories opened last, most recent first, for the sidebar's
+    /// Recent section; the first is opened again at launch.
+    public private(set) var recent: [URL]
     let defaults: UserDefaults
     private static let repositoriesKey = "repositories"
+    private static let recentKey = "recentRepositories"
+    static let recentCount = 3
+    /// How long a repository must stay selected to count as opened, so
+    /// walking down the sidebar with ↓ does not fill Recent with every
+    /// repository passed on the way.
+    var recentDwell: Duration = .seconds(1)
+    private var recentTask: Task<Void, Never>?
 
     public init(git: Git? = Git.locate(), defaults: UserDefaults = .standard) {
         self.git = git
         self.defaults = defaults
-        repositories = (defaults.stringArray(forKey: Self.repositoriesKey) ?? [])
+        let repositories = (defaults.stringArray(forKey: Self.repositoriesKey) ?? [])
             .map { URL(fileURLWithPath: $0) }
+        self.repositories = repositories
+        recent = (defaults.stringArray(forKey: Self.recentKey) ?? [])
+            .map { URL(fileURLWithPath: $0) }.filter(repositories.contains)
         // The storage, not the property: under @Observable the property's
         // didSet would run here and read the status before the window asks
         // for it, which then read it a second time at every launch.
-        _selected = repositories.first
+        _selected = recent.first ?? repositories.first
         for feature in [branches, history, forge, library] as [any Feature] { feature.app = self }
+        library.restore()
         watch()
         forge.repositoryChanged()  // which forge repository this is
         // The first status is read now, while the window is still being
@@ -125,9 +140,22 @@ public final class AppModel {
     /// Takes a repository off the list. Its folder is left alone.
     public func remove(_ url: URL) {
         repositories.removeAll { $0 == url }
+        recent.removeAll { $0 == url }
         drafts[url] = nil
         defaults.set(repositories.map(\.path), forKey: Self.repositoriesKey)
+        defaults.set(recent.map(\.path), forKey: Self.recentKey)
         if selected == url { selected = repositories.first }
+    }
+
+    private func countAsOpened() {
+        recentTask?.cancel()
+        guard let url = selected else { return }
+        recentTask = Task { [weak self, recentDwell] in
+            try? await Task.sleep(for: recentDwell)
+            guard let self, !Task.isCancelled, selected == url, repositories.contains(url) else { return }
+            recent = Array(([url] + recent.filter { $0 != url }).prefix(Self.recentCount))
+            defaults.set(recent.map(\.path), forKey: Self.recentKey)
+        }
     }
 
     // MARK: Refreshing (docs/plans/004_refreshing_on_file_changes.md)

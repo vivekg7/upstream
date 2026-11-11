@@ -68,6 +68,46 @@ private func isolated(in dir: URL) throws -> [String: String] {
     #expect(model.library.groups(filter: "octo").map(\.repositories.count) == [1])
 }
 
+@MainActor @Test func recentKeepsTheLastThreeOpenedAndCollapsingIsKept() async throws {
+    let git = try #require(Git.locate(), "no git on this machine")
+    let root = try scratch()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let names = (1...LibraryModel.recentThreshold).map { "r\($0)" }
+    let defaults = try #require(UserDefaults(suiteName: UUID().uuidString))
+    let model = AppModel(git: git, defaults: defaults)
+    model.recentDwell = .milliseconds(50)
+    for name in names {
+        let dir = root.appending(path: name)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try await git.run(["init", "-q"], in: dir)
+        await model.add(dir)
+    }
+    let url = { (name: String) in model.repositories.first { $0.lastPathComponent == name }! }
+    for name in ["r2", "r5", "r3", "r5", "r7"] {
+        model.selected = url(name)
+        try await Task.sleep(for: .milliseconds(150))
+    }
+    // Passed on the way with ↓, not opened.
+    for name in ["r1", "r4"] { model.selected = url(name) }
+    model.selected = url("r7")
+    try await Task.sleep(for: .milliseconds(150))
+    await model.library.update()
+
+    #expect(model.recent.map(\.lastPathComponent) == ["r7", "r5", "r3"])
+    // By name, so picking one or ↓ through them does not reorder the rows.
+    #expect(model.library.recent().map(\.lastPathComponent) == ["r3", "r5", "r7"])
+    #expect(model.library.recent(filter: "r").isEmpty)  // the matches are the list
+    model.library.setExpanded(false, LibraryModel.recentSection)
+
+    let relaunched = AppModel(git: git, defaults: defaults)
+    #expect(relaunched.selected?.lastPathComponent == "r7")
+    #expect(relaunched.library.collapsed == [LibraryModel.recentSection])
+    relaunched.remove(url("r5"))
+    #expect(relaunched.recent.map(\.lastPathComponent) == ["r7", "r3"])
+    relaunched.remove(url("r1"))  // too short a list to repeat in Recent
+    #expect(relaunched.library.recent().isEmpty)
+}
+
 @MainActor @Test func aMovedFolderIsShownMissing() async throws {
     let git = try #require(Git.locate(), "no git on this machine")
     let root = try scratch()

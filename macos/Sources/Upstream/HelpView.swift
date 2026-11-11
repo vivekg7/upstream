@@ -163,10 +163,11 @@ enum HelpTopic: String, CaseIterable, Identifiable {
                 "- **Clone Repository…** (\(S.cloneRepository.label)) from a URL, or from your account's repositories.",
                 "- **New Repository…** (\(S.newRepository.label)) to start one, with a README, `.gitignore` and licence if you like.",
                 """
-                The sidebar groups repositories by owner, read from each one's remote. \
-                **Filter Repositories** (\(S.filterRepositories.label)) to find one by name, then \
-                ↓ to open the first match. A folder with a lock is private on the forge you \
-                signed in to.
+                The sidebar groups repositories by owner, read from each one's remote, \
+                with the three you opened last under **Recent**. Hover over a section's \
+                header and click its arrow to collapse it. **Filter Repositories** \
+                (\(S.filterRepositories.label)) to find one by name, then ↓ to open the first \
+                match. A folder with a lock is private on the forge you signed in to.
                 """,
                 """
                 A folder that has moved or gone shows a warning: right-click it to **Locate…** it \

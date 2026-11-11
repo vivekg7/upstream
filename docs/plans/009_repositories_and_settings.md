@@ -95,6 +95,39 @@ a gap out of the folder around it. A public repository and one whose
 visibility is not known (no forge remote, signed out, not visible to the
 account) keep the plain folder: there is nothing to warn about in either.
 
+### Recent and collapsing
+
+The owner asked (2026-11-11) for a Recent section of about three
+repositories, as GitHub Desktop has, and for sections that collapse, so one
+owner's long list can be folded away to scroll another's.
+
+- **Recent: the last three opened, listed by name.** `AppModel.recent`
+  keeps them most recent first in the defaults (`recentRepositories`); the
+  first is selected at launch, where before the alphabetically first was.
+  The section lists them by name, not by time. Ordered by time, a click
+  moved the clicked row to the top under the pointer, and ↓ through the
+  section reordered it at every step, so the keyboard bounced between two
+  rows. By name the rows hold still while the user picks among them.
+- **Opened means selected for a second.** Counted on every selection, ↓
+  down a group put each repository passed into Recent (seen in the app:
+  walking past one pushed out a repository the user had opened). A second
+  is longer than a key press and shorter than reading a status.
+- **A repository in Recent is also in its group.** Both rows are selected
+  together; ↑ and ↓ move from whichever row the keyboard came through.
+  Taking the selected one out of Recent was rejected: its row would vanish
+  under the pointer as it was clicked.
+- **Recent appears from eight repositories.** Below that the whole list is
+  about a screenful and Recent would only repeat it. It is hidden while
+  filtering, when the matches are the list.
+- **Every section collapses** with SwiftUI's own disclosure on the header
+  (`Section(isExpanded:)`, the chevron that shows on hover, as in Finder's
+  sidebar). The collapsed ones are kept by id in the defaults
+  (`collapsedSections`): an owner's "host/path", which always has a slash,
+  or "recent" or "other". Filtering opens all of them and hides the
+  chevrons, so no match is folded out of sight. ↑ and ↓ skip a collapsed
+  section's rows. The arrows fold nothing: → still moves to the next
+  column, and ← in the sidebar does nothing.
+
 ### A missing folder
 
 Shown in its group with a warning icon, dimmed; it cannot be selected,
@@ -225,7 +258,11 @@ git.
    a moved folder located again, create on the chosen branch, create in a
    folder with files, clone from a bare repository, a cancelled clone,
    settings in a scratch global config, an old git.
-4. The Account tab lists repositories once the forge's
+4. ✅ Recent and collapsible sections; tested against real git (three
+   kept, a walk with ↓ not counted, the last opened and the collapsed
+   sections back after a relaunch), and checked in the app with clicks
+   and arrows on 2026-11-11.
+5. The Account tab lists repositories once the forge's
    `AccountRepositoryPicker` is built
    ([002](002_forges_github_first.md)).
 

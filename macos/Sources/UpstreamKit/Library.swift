@@ -24,6 +24,9 @@ public final class LibraryModel: Feature {
     public private(set) var gitVersion: GitVersion?
     /// The clone or create sheet, opened from the File menu or the sidebar.
     public var sheet: Sheet?
+    /// The sidebar sections the user collapsed, by `sectionID`, kept
+    /// across launches.
+    public private(set) var collapsed: Set<String> = []
     private var read: Set<URL> = []
     private var askedVersion = false
 
@@ -33,6 +36,27 @@ public final class LibraryModel: Feature {
     }
 
     nonisolated init() {}
+
+    private static let collapsedKey = "collapsedSections"
+    /// Below this many repositories the whole list is about a screenful,
+    /// and a Recent section would only repeat it.
+    static let recentThreshold = 8
+
+    /// Reads what `collapsed` was at the last launch; called once the app
+    /// is set.
+    func restore() {
+        collapsed = Set(app?.defaults.stringArray(forKey: Self.collapsedKey) ?? [])
+    }
+
+    /// An owner's section by its "host/path", which always has a slash,
+    /// so it cannot be taken for "recent" or "other".
+    public static func sectionID(_ owner: RemoteOwner?) -> String { owner?.description ?? "other" }
+    public static let recentSection = "recent"
+
+    public func setExpanded(_ expanded: Bool, _ section: String) {
+        if expanded { collapsed.remove(section) } else { collapsed.insert(section) }
+        app?.defaults.set(collapsed.sorted(), forKey: Self.collapsedKey)
+    }
 
     /// Checks which folders exist, and reads the remotes of every repository
     /// not read yet and of the selected one. Remotes are read once per
@@ -118,6 +142,20 @@ public final class LibraryModel: Feature {
             guard let b else { return true }
             return a < b
         }.map { ($0, grouped[$0]!) }
+    }
+
+    /// The Recent section: the repositories opened last that are still
+    /// there, by name rather than by when, so picking one does not move the
+    /// rows under the pointer, nor ↓ through them reorder what is ahead.
+    /// Empty while filtering, when the matches are the list, and in a short
+    /// list.
+    public func recent(filter: String = "") -> [URL] {
+        guard let app, filter.trimmingCharacters(in: .whitespaces).isEmpty,
+            app.repositories.count >= Self.recentThreshold
+        else { return [] }
+        return app.recent.filter { !missing.contains($0) }.sorted {
+            $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
+        }
     }
 
     /// Puts `new` in the list in place of the missing `old`, if it is a
