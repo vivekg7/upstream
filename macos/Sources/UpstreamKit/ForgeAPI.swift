@@ -162,9 +162,17 @@ public protocol Forge: Sendable {
         -> ForgeRepository
     func changeRequests(in repo: RepoRef) async throws -> [ChangeRequest]
     func checks(in repo: RepoRef, commit: String) async throws -> [Check]
-    /// Whether each of `repos` is private (true) or public, for the
-    /// sidebar's icons; one the account cannot see is left out.
-    func privacy(of repos: [RepoRef]) async throws -> [RepoRef: Bool]
+    /// Whether each of `repos` is private and when it was last pushed to,
+    /// for the sidebar's icons and its fetches; one the account cannot see
+    /// is left out.
+    func facts(of repos: [RepoRef]) async throws -> [RepoRef: RepoFacts]
+}
+
+/// What the sidebar asks a forge about a repository it lists.
+public struct RepoFacts: Sendable, Equatable, Decodable {
+    public var isPrivate: Bool
+    /// The last push to any branch; nil for a repository never pushed to.
+    public var pushedAt: Date?
 }
 
 public enum ForgeError: Error, LocalizedError, Equatable {

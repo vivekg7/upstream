@@ -170,6 +170,14 @@ enum HelpTopic: String, CaseIterable, Identifiable {
                 match. A folder with a lock is private on the forge you signed in to.
                 """,
                 """
+                Each row shows ↓ when there are commits to pull, ↑ when there are commits to \
+                push, and a dot when there are uncommitted changes; hover for the counts. While \
+                Upstream is in front it fetches each repository now and then. **Pull All \
+                Repositories** (\(S.pullAll.label)) in the Repository menu brings every one up to \
+                date that can simply fast-forward; one with local commits, or with a change an \
+                incoming commit touches, is listed for you to pull yourself.
+                """,
+                """
                 A folder that has moved or gone shows a warning: right-click it to **Locate…** it \
                 or **Remove from List**. Removing never touches the folder.
                 """,
@@ -310,7 +318,8 @@ enum HelpTopic: String, CaseIterable, Identifiable {
                 """
                 **Settings** (\(S.settings.label)) holds your name and email (git's global \
                 `user.name` and `user.email`), the default branch name, your editor and terminal, \
-                where clones go, and which git to use. Appearance follows the system.
+                where clones go, whether rows show their status, and which git to use. Appearance \
+                follows the system.
                 """,
                 """
                 Upstream talks only to the forges you sign in to. It sends no telemetry, and \

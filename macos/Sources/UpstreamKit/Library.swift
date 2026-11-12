@@ -104,6 +104,7 @@ public final class LibraryModel: Feature {
             read.insert(repo)
         }
         loaded = true
+        app.overview.libraryChanged()
         let forge = app.forge
         let repos = repositories.reduce(into: [URL: RepoRef]()) { refs, repo in
             let urls = remotes[repo] ?? [:]
@@ -114,6 +115,9 @@ public final class LibraryModel: Feature {
         if repos != forgeRepositories { forgeRepositories = repos }
         await forge.readPrivacy(of: repos.values)
     }
+
+    /// Every remote's URL, as last read.
+    func remoteURLs(of repo: URL) -> [String] { remotes[repo].map { Array($0.values) } ?? [] }
 
     /// true for a private repository, false for a public one, nil when not
     /// known: no remote on a forge, signed out of its host, or not asked yet.

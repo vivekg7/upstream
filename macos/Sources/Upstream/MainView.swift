@@ -59,6 +59,15 @@ struct MainView: View {
         // for Changes and History alike.
         .onChange(of: hideWhitespace, initial: true) { model.hidesWhitespace = hideWhitespace }
         .modifier(ForgeSheets())
+        .sheet(
+            isPresented: Binding {
+                model.overview.pullAll != nil
+            } set: {
+                if !$0 { model.overview.dismissPullAll() }
+            }
+        ) {
+            PullAllSheet()
+        }
         .modifier(BranchDialogs())
         .safeAreaInset(edge: .top, spacing: 0) {
             if let error = model.error { ErrorBanner(message: error) { model.error = nil } }

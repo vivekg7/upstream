@@ -79,6 +79,7 @@ public final class AppModel {
     public let history = HistoryModel()
     public let forge = ForgeModel()
     public let library = LibraryModel()
+    public let overview = OverviewModel()
     /// The repositories opened last, most recent first, for the sidebar's
     /// Recent section; the first is opened again at launch.
     public private(set) var recent: [URL]
@@ -104,8 +105,9 @@ public final class AppModel {
         // didSet would run here and read the status before the window asks
         // for it, which then read it a second time at every launch.
         _selected = recent.first ?? repositories.first
-        for feature in [branches, history, forge, library] as [any Feature] { feature.app = self }
+        for feature in [branches, history, forge, library, overview] as [any Feature] { feature.app = self }
         library.restore()
+        overview.restore()
         watch()
         forge.repositoryChanged()  // which forge repository this is
         // The first status is read now, while the window is still being
@@ -200,6 +202,7 @@ public final class AppModel {
             guard repo == selected else { return }
             let old = status
             if fresh != status { status = fresh }
+            overview.selectedRead(repo, fresh)
             if let file = selectedFile, !fresh.files.contains(where: { $0.id == file }) {
                 selectedFile = nil
             } else {
@@ -235,6 +238,7 @@ public final class AppModel {
         }
         branches.activeChanged(active)
         forge.activeChanged(active)
+        overview.activeChanged(active)
     }
 
     /// Watches the selected repository's working tree and git directories.
@@ -264,23 +268,9 @@ public final class AppModel {
 
     /// FSEvents saw `paths` change (nil: anything may have).
     private func changed(_ paths: [String]?, in repo: URL, _ filter: WatchFilter) async {
-        guard repo == selected, let git else { return }
-        if let paths {
-            let (gitPaths, tree) = filter.relevant(paths)
-            if gitPaths.isEmpty {
-                guard !tree.isEmpty else { return }
-                // A build writing into an ignored folder is not a change.
-                // check-ignore exits 1 when none is ignored, and prints the
-                // ones that are; tracked files are never reported.
-                let input = Data(tree.joined(separator: "\0").utf8 + [0])
-                if let ignored = try? await git.run(
-                    ["check-ignore", "-z", "--stdin"], in: repo, input: input, allowedExitCodes: [0, 1]),
-                    ignored.stdout.split(separator: 0).count == Set(tree).count
-                {
-                    return
-                }
-            }
-        }
+        guard repo == selected, let git, await filter.worthReading(paths, git: git),
+            repo == selected
+        else { return }
         guard isActive else {
             stale = true
             return

@@ -2,9 +2,9 @@ import SwiftUI
 import UpstreamKit
 
 /// The sidebar: every repository the user added, grouped by owner and
-/// filterable (docs/plans/009_repositories_and_settings.md). Rows carry no
-/// change counts or ahead/behind: those would cost a `git status` per
-/// repository, and the selected one's are already in the toolbar.
+/// filterable (docs/plans/009_repositories_and_settings.md), each row with
+/// ↓ ↑ and a dot for commits to pull and push and uncommitted changes
+/// (docs/plans/011_status_on_every_row.md).
 struct RepositoryList: View {
     @Environment(AppModel.self) private var model
     @State private var filter = ""
@@ -129,18 +129,30 @@ struct RepositoryList: View {
     private func row(_ url: URL) -> some View {
         let missing = model.library.missing.contains(url)
         let isPrivate = !missing && model.library.isPrivate(url) == true
-        return Label {
-            Text(url.lastPathComponent).foregroundStyle(missing ? .secondary : .primary)
-        } icon: {
-            if missing {
-                Image(systemName: "exclamationmark.triangle")
-            } else if isPrivate {
-                PrivateFolder()
-            } else {
-                Image(systemName: "folder")
+        let status = missing || !model.overview.isOn ? nil : model.overview.rows[url]
+        return HStack {
+            Label {
+                Text(url.lastPathComponent).foregroundStyle(missing ? .secondary : .primary)
+            } icon: {
+                if missing {
+                    Image(systemName: "exclamationmark.triangle")
+                } else if isPrivate {
+                    PrivateFolder()
+                } else {
+                    Image(systemName: "folder")
+                }
+            }
+            if let status {
+                Spacer(minLength: 4)
+                RowBadges(status: status)
             }
         }
-        .help(missing ? "Not found at \(url.path)" : isPrivate ? "\(url.path) (private)" : url.path)
+        .help(
+            missing
+                ? "Not found at \(url.path)"
+                : ([isPrivate ? "\(url.path) (private)" : url.path] + (status.map(\.summary) ?? []))
+                    .joined(separator: "\n")
+        )
         // A missing folder has nothing to show; it can only be located or removed.
         .selectionDisabled(missing)
         .contextMenu {
@@ -165,6 +177,43 @@ struct RepositoryList: View {
             return
         }
         Task { await model.library.locate(url, at: new) }
+    }
+}
+
+/// ↓ and ↑ for commits to pull and to push, without the counts (they are in
+/// the tooltip), then a dot for uncommitted changes: GitHub Desktop's row.
+private struct RowBadges: View {
+    let status: RowStatus
+    /// Raised on a selected row, whose accent background would hide an
+    /// accent dot.
+    @Environment(\.backgroundProminence) private var prominence
+
+    var body: some View {
+        HStack(spacing: 2) {
+            if status.behind > 0 { Image(systemName: "arrow.down") }
+            if status.ahead > 0 { Image(systemName: "arrow.up") }
+            if status.hasChanges {
+                Circle()
+                    .fill(prominence == .increased ? Color.white : Color.accentColor)
+                    .frame(width: 7, height: 7)
+                    .padding(.leading, 2)
+            }
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(status.summary.joined(separator: ", "))
+    }
+}
+
+extension RowStatus {
+    /// The tooltip's lines: what the badges stand for, with the counts.
+    var summary: [String] {
+        var lines: [String] = []
+        if behind > 0 { lines.append(behind == 1 ? "1 commit to pull" : "\(behind) commits to pull") }
+        if ahead > 0 { lines.append(ahead == 1 ? "1 commit to push" : "\(ahead) commits to push") }
+        if hasChanges { lines.append("Uncommitted changes") }
+        return lines
     }
 }
 

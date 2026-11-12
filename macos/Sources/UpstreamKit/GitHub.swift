@@ -308,29 +308,28 @@ public struct GitHub: Forge {
     }
 
     /// A hundred repositories to a query, one alias each (`r0`, `r1`, …),
-    /// so a sidebar of any size costs a request or two per launch rather
-    /// than a GET per repository. Names go in variables, never into the
-    /// query text.
-    public func privacy(of repos: [RepoRef]) async throws -> [RepoRef: Bool] {
-        var found: [RepoRef: Bool] = [:]
+    /// so a sidebar of any size costs a request or two rather than a GET
+    /// per repository. Names go in variables, never into the query text.
+    public func facts(of repos: [RepoRef]) async throws -> [RepoRef: RepoFacts] {
+        var found: [RepoRef: RepoFacts] = [:]
         for start in stride(from: 0, to: repos.count, by: 100) {
             let chunk = Array(repos[start..<min(start + 100, repos.count)])
             let response = try await send(
-                Self.graphQL(account.host), method: "POST", json: Self.privacyQuery(chunk))
-            for (i, isPrivate) in try Self.privacy(from: response.data) where i < chunk.count {
-                found[chunk[i]] = isPrivate
+                Self.graphQL(account.host), method: "POST", json: Self.factsQuery(chunk))
+            for (i, facts) in try Self.facts(from: response.data) where i < chunk.count {
+                found[chunk[i]] = facts
             }
         }
         return found
     }
 
-    static func privacyQuery(_ repos: [RepoRef]) -> [String: Any] {
+    static func factsQuery(_ repos: [RepoRef]) -> [String: Any] {
         var parameters: [String] = []
         var fields: [String] = []
         var variables: [String: String] = [:]
         for (i, repo) in repos.enumerated() {
             parameters += ["$o\(i): String!", "$n\(i): String!"]
-            fields.append("r\(i): repository(owner: $o\(i), name: $n\(i)) { isPrivate }")
+            fields.append("r\(i): repository(owner: $o\(i), name: $n\(i)) { isPrivate pushedAt }")
             (variables["o\(i)"], variables["n\(i)"]) = (repo.owner, repo.name)
         }
         return [
@@ -339,25 +338,27 @@ public struct GitHub: Forge {
         ]
     }
 
-    /// Alias index → isPrivate. A repository GraphQL cannot see (deleted,
+    /// Alias index → facts. A repository GraphQL cannot see (deleted,
     /// never shared with the account, behind SSO) is null beside an entry in
     /// `errors`, and is left out; only an answer with no data at all throws.
-    static func privacy(from data: Data) throws -> [Int: Bool] {
+    /// `pushedAt` is null for a repository never pushed to.
+    static func facts(from data: Data) throws -> [Int: RepoFacts] {
         struct Answer: Decodable {
             struct Message: Decodable { var message: String }
-            struct Repository: Decodable { var isPrivate: Bool }
-            var data: [String: Repository?]?
+            var data: [String: RepoFacts?]?
             var errors: [Message]?
         }
-        let answer = try JSONDecoder().decode(Answer.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let answer = try decoder.decode(Answer.self, from: data)
         guard let repositories = answer.data else {
             throw ForgeError.http(
                 status: 200, message: answer.errors?.map(\.message).joined(separator: " ") ?? "")
         }
-        var found: [Int: Bool] = [:]
+        var found: [Int: RepoFacts] = [:]
         for (alias, repository) in repositories {
             guard alias.hasPrefix("r"), let i = Int(alias.dropFirst()), let repository else { continue }
-            found[i] = repository.isPrivate
+            found[i] = repository
         }
         return found
     }

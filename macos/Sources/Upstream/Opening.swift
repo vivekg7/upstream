@@ -166,6 +166,10 @@ struct RepositoryCommands: Commands {
             }
             .disabled(model.selected.map { model.library.missing.contains($0) } ?? true)
             Divider()
+            Button(Shortcut.pullAll.name) { model.overview.startPullAll() }
+                .keyboardShortcut(Shortcut.pullAll)
+                .disabled(model.repositories.isEmpty || model.overview.pullAll != nil)
+            Divider()
             PublishRepositoryButton(model: model)
         }
     }

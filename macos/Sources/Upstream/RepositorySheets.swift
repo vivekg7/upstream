@@ -170,6 +170,68 @@ struct FolderField: View {
     }
 }
 
+/// Repository → Pull All Repositories: progress, then what was pulled and
+/// what was skipped and why (docs/plans/011_status_on_every_row.md).
+struct PullAllSheet: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let overview = model.overview
+        let run = overview.pullAll ?? PullAllRun(total: 0)
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Pull All Repositories").font(.headline)
+            if run.isFinished {
+                Text(summary(run))
+            } else {
+                ProgressView(value: Double(run.done), total: Double(max(run.total, 1))) {
+                    Text(run.isStopping ? "Stopping…" : "Fetching and pulling \(run.done) of \(run.total)…")
+                }
+            }
+            if !run.outcomes.isEmpty {
+                List(run.outcomes) { outcome in
+                    switch outcome.result {
+                    case .pulled(let commits):
+                        Label {
+                            Text(outcome.repository.lastPathComponent)
+                            Text(commits == 1 ? "1 commit" : "\(commits) commits")
+                        } icon: {
+                            Image(systemName: "arrow.down.circle.fill").foregroundStyle(.green)
+                        }
+                    case .skipped(let why):
+                        Label {
+                            Text(outcome.repository.lastPathComponent)
+                            Text(why).textSelection(.enabled)
+                        } icon: {
+                            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.orange)
+                        }
+                    }
+                }
+                .frame(minHeight: 180)
+            }
+            HStack {
+                Spacer()
+                if run.isFinished {
+                    Button("Done") { overview.dismissPullAll() }.keyboardShortcut(.defaultAction)
+                } else {
+                    Button("Stop") { overview.stopPullAll() }.disabled(run.isStopping)
+                }
+            }
+        }
+        .padding(20)
+        .frame(width: 460)
+        .interactiveDismissDisabled(!run.isFinished)
+    }
+
+    private func summary(_ run: PullAllRun) -> String {
+        let pulled = run.outcomes.filter { if case .pulled = $0.result { true } else { false } }.count
+        let skipped = run.outcomes.count - pulled
+        if run.outcomes.isEmpty { return "Everything was up to date." }
+        let a = pulled == 1 ? "Pulled 1 repository." : "Pulled \(pulled) repositories."
+        let b = skipped == 1 ? "1 needs you." : "\(skipped) need you."
+        return skipped == 0 ? a : pulled == 0 ? b : "\(a) \(b)"
+    }
+}
+
 struct ErrorText: View {
     let message: String
     init(_ message: String) { self.message = message }

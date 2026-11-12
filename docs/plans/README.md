@@ -83,6 +83,7 @@ wrong.
 
 | Plan                                                                            | Status                                                                            |
 | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [011 — Status on every row, and Pull All](011_status_on_every_row.md)           | `IN PROGRESS` — ↓ ↑ and a dot on each row, fetching the others, Pull All          |
 | [010 — Keyboard and help](010_keyboard_and_help.md)                             | `MERGED` — ← → between the lists, ⌘1 ⌘2 ⌘T, Space, Help window and shortcuts page |
 | [009 — Repositories and settings](009_repositories_and_settings.md)             | `MERGED` — sidebar, clone, create, open in, Settings                              |
 | [008 — Discard, ignore and conflicts](008_discard_ignore_and_conflicts.md)      | `MERGED` — discard to the Trash, ignore, the conflict banner                      |

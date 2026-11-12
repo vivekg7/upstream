@@ -49,7 +49,10 @@ the binary grows, and whether the app ever talks to the network on its own.
 
 ### Change counts and ahead/behind on each row
 
-GitHub Desktop shows both on every repository in its list.
+GitHub Desktop shows both on every repository in its list. The owner asked
+for them (2026-11-12), and [011](011_status_on_every_row.md) builds them
+the way C below suggested: read when a watcher says something changed, not
+on every refresh.
 
 - **A. None.** Chosen. Each would cost a `git status` per repository, on
   every refresh, for every repository the user ever added, and the owner

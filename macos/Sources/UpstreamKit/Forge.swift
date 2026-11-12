@@ -355,13 +355,34 @@ public final class ForgeModel: Feature {
             // Before the await: the sidebar's updates overlap at launch.
             askedPrivacy.formUnion(refs)
             do {
-                let found = try await client.privacy(of: refs)
-                guard self.account(for: host) != nil else { continue }  // signed out meanwhile
-                for (ref, isPrivate) in found where privacy[ref] != isPrivate { privacy[ref] = isPrivate }
+                note(try await client.facts(of: refs), host: host)
             } catch {
                 askedPrivacy.subtract(refs)
             }
         }
+    }
+
+    /// When each of `repos` on a signed-in host was last pushed to, from the
+    /// same query, so the sidebar fetches only what someone pushed to
+    /// (docs/plans/011_status_on_every_row.md). Left out: a repository on a
+    /// host without an account, one the account cannot see, one never
+    /// pushed to, and every one of a host whose request failed; the caller
+    /// fetches those on its timer alone.
+    func lastPushes(of repos: some Sequence<RepoRef>) async -> [RepoRef: Date] {
+        var pushes: [RepoRef: Date] = [:]
+        for (host, refs) in Dictionary(grouping: Set(repos), by: \.host) {
+            guard let account = account(for: host), let client = client(for: account),
+                let found = try? await client.facts(of: refs)
+            else { continue }
+            note(found, host: host)
+            for (ref, facts) in found { pushes[ref] = facts.pushedAt }
+        }
+        return pushes
+    }
+
+    private func note(_ found: [RepoRef: RepoFacts], host: String) {
+        guard account(for: host) != nil else { return }  // signed out meanwhile
+        for (ref, facts) in found where privacy[ref] != facts.isPrivate { privacy[ref] = facts.isPrivate }
     }
 
     // MARK: Notifications

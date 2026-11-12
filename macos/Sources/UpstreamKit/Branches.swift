@@ -179,8 +179,9 @@ public final class BranchesModel: Feature {
 
     /// Fetches the selected repository every `fetchInterval` while the app
     /// is in front, and at once if it has not fetched for that long. Nothing
-    /// runs in the background or for any other repository: the owner
-    /// audits idle CPU and network.
+    /// runs in the background: the owner audits idle CPU and network. The
+    /// other repositories are fetched for their rows, more rarely
+    /// (`OverviewModel`, docs/plans/011_status_on_every_row.md).
     private func startFetching() {
         guard let app, app.isActive, let repo = app.selected, let interval = fetchInterval,
             fetchLoop == nil || loopRepo != repo

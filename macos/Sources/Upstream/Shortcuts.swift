@@ -51,6 +51,7 @@ struct Shortcut: Identifiable {
 
     static let all: [Shortcut] = [
         newRepository, addLocalRepository, cloneRepository, openInEditor, openInTerminal, showInFinder,
+        pullAll,
         showChanges, showHistory, filterRepositories, refresh,
         moveRows, nextColumn, previousColumn, intoMatches, nextField,
         toggleChecked, commit,
@@ -67,6 +68,8 @@ struct Shortcut: Identifiable {
     static let openInEditor = Shortcut("Open in Editor", "a", [.command, .shift], .repositories)
     static let openInTerminal = Shortcut("Open in Terminal", "`", .control, .repositories)
     static let showInFinder = Shortcut("Show in Finder", "f", [.command, .shift], .repositories)
+    /// Pull is ⇧⌘P, and ⌥ is the Mac's "all" (⌥⌘W closes all windows).
+    static let pullAll = Shortcut("Pull All Repositories", "p", [.command, .option, .shift], .repositories)
 
     // MARK: View
 

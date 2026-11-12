@@ -33,15 +33,15 @@ for anyone in the world, under MIT. The owner's answers (2026-11-11):
 
 GitHub Desktop is the baseline. Targets, on an M-series Mac:
 
-| Measure                                    | Target                                              | Now (2026-11-11, v1 build)                          | GitHub Desktop (2026-11-11)   |
-| ------------------------------------------ | --------------------------------------------------- | --------------------------------------------------- | ----------------------------- |
-| App on disk                                | ≤ 15 MB                                             | 2.5 MB (1.0 MB zipped)                              | 1.1 GB                        |
-| Launch to the first status shown           | ≤ 0.5 s                                             | 0.37–0.52 s, median 0.43 s                          | —                             |
-| Memory, one repository open                | ≤ 100 MB footprint                                  | 41–61 MB; 62–97 MB with a 10k–100k-line diff loaded | 183 MB (four processes, idle) |
-| Status refresh, beyond `git status` itself | ≤ 30 ms for 10,000 changes                          | 6 ms                                                | —                             |
-| A 10,000-line diff                         | opens and scrolls smoothly                          | < 0.1 s, 3 ms a frame                               | —                             |
-| History                                    | first page ≤ 200 ms on 100k commits, the rest paged | 10 ms; later pages 16 ms                            | —                             |
-| Idle                                       | behind: nothing; in front: the 5-minute fetch only  | behind: 0 git, 0 bytes, 0.07 s CPU in 10 min        | —                             |
+| Measure                                    | Target                                                                                | Now (2026-11-11, v1 build)                          | GitHub Desktop (2026-11-11)   |
+| ------------------------------------------ | ------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------- |
+| App on disk                                | ≤ 15 MB                                                                               | 2.5 MB (1.0 MB zipped)                              | 1.1 GB                        |
+| Launch to the first status shown           | ≤ 0.5 s                                                                               | 0.37–0.52 s, median 0.43 s                          | —                             |
+| Memory, one repository open                | ≤ 100 MB footprint                                                                    | 41–61 MB; 62–97 MB with a 10k–100k-line diff loaded | 183 MB (four processes, idle) |
+| Status refresh, beyond `git status` itself | ≤ 30 ms for 10,000 changes                                                            | 6 ms                                                | —                             |
+| A 10,000-line diff                         | opens and scrolls smoothly                                                            | < 0.1 s, 3 ms a frame                               | —                             |
+| History                                    | first page ≤ 200 ms on 100k commits, the rest paged                                   | 10 ms; later pages 16 ms                            | —                             |
+| Idle                                       | behind: nothing; in front: the 5-minute fetch, and every 15 minutes the others' (011) | behind: 0 git, 0 bytes, 0.07 s CPU in 10 min        | —                             |
 
 How each was measured, and on what, is in
 [004](plans/004_refreshing_on_file_changes.md#measured) and
@@ -69,10 +69,19 @@ Status: ✅ built, ◻️ to build.
   (asked of the signed-in forge, so signed out every folder is plain).
   ✅ Add a local folder (its top-level working tree is what is added).
   ✅ Remove from the list (the folder is untouched).
-- Unlike GitHub Desktop, the rows show no change counts or ahead/behind:
-  each would cost a `git status` per repository, on every refresh, for
-  every repository the user ever added. The selected one's are in the
-  toolbar ([009](plans/009_repositories_and_settings.md)).
+- ✅ Each row shows ↓ when there are commits to pull, ↑ when there are
+  commits to push, and a dot for uncommitted changes (new files count),
+  as GitHub Desktop's do; the counts are in the tooltip. A row is read at
+  launch and when something in its folder changes, never on a timer.
+  While the app is in front, every 15 minutes, a repository not fetched
+  for 30 minutes is fetched, and on GitHub only if someone pushed to it
+  since. Settings → General turns all of it off
+  ([011](plans/011_status_on_every_row.md)).
+- ✅ Pull All Repositories (⌥⇧⌘P) fetches every repository and
+  fast-forwards each one whose branch is behind and not ahead. One with
+  local commits, or with an uncommitted change an incoming commit would
+  overwrite, is skipped and listed with the reason; the owner's answer
+  (2026-11-12): a batch pull never merges or rebases.
 - ✅ Clone by URL, or from the signed-in account's repositories, into a
   folder that defaults to `~/Developer` (Settings). Cancel stops git and
   leaves no folder behind.
@@ -166,9 +175,10 @@ How: [003](plans/003_the_checkbox_commit.md).
 
 - ✅ Fetch (and every few minutes in the background), pull (the user's
   `pull.rebase` setting decides how), push, publish a branch. The
-  background fetch runs every 5 minutes, only while the app is in front and
-  only for the selected repository
-  ([005](plans/005_branches_and_remotes.md)).
+  background fetch runs every 5 minutes, only while the app is in front,
+  for the selected repository ([005](plans/005_branches_and_remotes.md));
+  the others are fetched for their rows, at most every 30 minutes
+  ([011](plans/011_status_on_every_row.md)).
 - ✅ After a rebase or amend: force push only as
   `--force-with-lease --force-if-includes`, after confirming.
 - ✅ SSH and HTTPS remotes on any host work through the user's own keys and

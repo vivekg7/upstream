@@ -91,16 +91,21 @@ private let pullRequestsJSON = Data(
     }
 }
 
-@Test func privacyKeepsWhatGraphQLCouldSeeAndPutsNamesInVariables() throws {
-    // Shape from GitHub: a repository it cannot see is null beside an error.
+@Test func factsKeepWhatGraphQLCouldSeeAndPutNamesInVariables() throws {
+    // Shape from GitHub: a repository it cannot see is null beside an error,
+    // and one never pushed to has a null pushedAt.
     let json = Data(
-        #"{"data":{"r0":{"isPrivate":true},"r1":null,"r2":{"isPrivate":false}},"errors":[{"type":"NOT_FOUND","path":["r1"],"message":"Could not resolve to a Repository with the name 'octo/gone'."}]}"#
+        #"{"data":{"r0":{"isPrivate":true,"pushedAt":"2026-11-12T08:30:00Z"},"r1":null,"r2":{"isPrivate":false,"pushedAt":null}},"errors":[{"type":"NOT_FOUND","path":["r1"],"message":"Could not resolve to a Repository with the name 'octo/gone'."}]}"#
             .utf8)
-    #expect(try GitHub.privacy(from: json) == [0: true, 2: false])
+    #expect(
+        try GitHub.facts(from: json) == [
+            0: RepoFacts(isPrivate: true, pushedAt: Date(timeIntervalSince1970: 1_794_472_200)),
+            2: RepoFacts(isPrivate: false, pushedAt: nil),
+        ])
     #expect(throws: ForgeError.self) {
-        try GitHub.privacy(from: Data(#"{"errors":[{"message":"Bad query"}]}"#.utf8))
+        try GitHub.facts(from: Data(#"{"errors":[{"message":"Bad query"}]}"#.utf8))
     }
-    let query = GitHub.privacyQuery([RepoRef(host: "github.com", owner: "o\"x", name: "n")])
+    let query = GitHub.factsQuery([RepoRef(host: "github.com", owner: "o\"x", name: "n")])
     #expect(!(query["query"] as! String).contains("o\"x"))
     #expect(query["variables"] as! [String: String] == ["o0": "o\"x", "n0": "n"])
 }

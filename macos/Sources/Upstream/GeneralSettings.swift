@@ -2,7 +2,8 @@ import SwiftUI
 import UpstreamKit
 
 /// Name and email, the default branch, the editor, the terminal, the clone
-/// folder and the git to use (docs/plans/009_repositories_and_settings.md).
+/// folder, the repository list's status (docs/plans/011_status_on_every_row.md)
+/// and the git to use (docs/plans/009_repositories_and_settings.md).
 /// The git settings live in the global git config, read and written
 /// through git, so a terminal sees the same values; the rest are the app's
 /// own and live in `UserDefaults`.
@@ -43,6 +44,20 @@ struct GeneralSettings: View {
                 FolderField(
                     title: "Clone and create in",
                     folder: Binding(get: { cloneFolder }, set: { cloneFolderPath = $0.path }))
+            }
+            Section("Repository list") {
+                Toggle(
+                    "Show status in the repository list",
+                    isOn: Binding {
+                        model.overview.isOn
+                    } set: {
+                        model.overview.setOn($0)
+                    })
+                Text(
+                    "↓ and ↑ for commits to pull and push, and a dot for uncommitted changes. While Upstream is in front, a repository is fetched at most every 30 minutes, and on GitHub only when someone pushed to it."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             Section("Git") {
                 LabeledContent("Using", value: model.git?.executable.path ?? "No git found")

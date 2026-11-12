@@ -118,6 +118,26 @@ public struct WatchFilter: Sendable {
         return (git, tree)
     }
 
+    /// Whether a batch of changed paths (nil: FSEvents dropped some) is
+    /// worth a `git status`: anything that matters in the git directory, or
+    /// a working-tree path git does not ignore.
+    func worthReading(_ paths: [String]?, git: Git) async -> Bool {
+        guard let paths else { return true }
+        let (gitPaths, tree) = relevant(paths)
+        if !gitPaths.isEmpty { return true }
+        guard !tree.isEmpty else { return false }
+        // A build writing into an ignored folder is not a change.
+        // check-ignore exits 1 when none is ignored, and prints the ones
+        // that are; tracked files are never reported.
+        let input = Data(tree.joined(separator: "\0").utf8 + [0])
+        guard
+            let ignored = try? await git.run(
+                ["check-ignore", "-z", "--stdin"], in: URL(fileURLWithPath: workTree), input: input,
+                allowedExitCodes: [0, 1])
+        else { return true }
+        return ignored.stdout.split(separator: 0).count != Set(tree).count
+    }
+
     static func matters(gitPath p: String) -> Bool {
         if p.isEmpty { return true }  // the directory itself: renamed, deleted
         if p.hasSuffix(".lock") { return false }
