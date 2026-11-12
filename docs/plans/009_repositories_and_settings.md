@@ -1,6 +1,6 @@
 # 009 — Repositories and settings
 
-**Status:** `IN PROGRESS` — sidebar, clone, create, open in, Settings → General built; the Account tab waits on the forge's picker
+**Status:** `MERGED` — sidebar with Recent and collapsible sections, clone (by URL or from the account), create, open in, Settings → General
 **Started:** 2026-11-11
 
 ## Problem
@@ -262,8 +262,8 @@ git.
    kept, a walk with ↓ not counted, the last opened and the collapsed
    sections back after a relaunch), and checked in the app with clicks
    and arrows on 2026-11-11.
-5. The Account tab lists repositories once the forge's
-   `AccountRepositoryPicker` is built
+5. ✅ The clone sheet's Account tab lists the signed-in accounts'
+   repositories through the forge's `AccountRepositoryPicker`
    ([002](002_forges_github_first.md)).
 
 ## Open questions

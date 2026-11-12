@@ -1,6 +1,6 @@
 # 008 — Discard, ignore and conflicts
 
-**Status:** `IN PROGRESS` — macOS: discard files and lines to the Trash, ignore, the conflict banner, ours/theirs, continue and abort, discarding from the diff's context menu
+**Status:** `MERGED` — macOS: discard files and lines to the Trash, ignore, the conflict banner, ours/theirs, continue and abort, discarding from the diff's context menu
 **Started:** 2026-11-11
 
 ## Problem

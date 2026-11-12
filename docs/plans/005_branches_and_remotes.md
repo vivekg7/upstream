@@ -1,6 +1,6 @@
 # 005 — Branches, remotes and the stash
 
-**Status:** `IN PROGRESS` — macOS: branch menu, switch (carry or stash), create, rename, delete, merge/squash/rebase with a preview, fetch/pull/push/publish/force push, background fetch, the stash row
+**Status:** `MERGED` — macOS: branch menu, switch (carry or stash), create, rename, delete, merge/squash/rebase with a preview, fetch/pull/push/publish/force push, background fetch, the stash row
 **Started:** 2026-11-11
 
 ## Problem
@@ -206,7 +206,8 @@ merge, ⌘⇧E rebase, ⌘⇧T fetch, ⌘⇧P pull, ⌘P push (or publish).
    fetch/pull/push, both force-push refusals, and the background fetch on
    opening a repository never fetched.
 3. ✅ The views, sheets and menu.
-4. The forge's credential helper behind `networkArguments` (plan 002).
+4. ✅ The forge's credential helper behind `networkArguments` (plan 002):
+   clone, fetch, pull and push all ask `AppModel.networkArguments`.
 
 ## Open questions
 

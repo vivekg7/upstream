@@ -1,6 +1,6 @@
 # 007 — The diff view
 
-**Status:** `IN PROGRESS` — renderer, split view, hidden whitespace, word highlights, image diff, the size guards and the discard menu, in Changes and History
+**Status:** `MERGED` — renderer, split view, hidden whitespace, word highlights, image diff, the size guards and the discard menu, in Changes and History
 **Started:** 2026-11-11
 
 ## Problem

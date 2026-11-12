@@ -1,6 +1,6 @@
 # 004 — Refreshing on file changes
 
-**Status:** `IN PROGRESS` — FSEvents watcher, ignored-path filter, coalesced refresh, measured; not yet on `main`
+**Status:** `MERGED` — FSEvents watcher, ignored-path filter, coalesced refresh, measured
 **Started:** 2026-11-11
 
 ## Problem
